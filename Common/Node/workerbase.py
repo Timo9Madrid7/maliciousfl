@@ -11,7 +11,7 @@ logger = logging.getLogger('client.workerbase')
 This is the worker for sharing the local gradients.
 '''
 class WorkerBase(metaclass=ABCMeta):
-    def __init__(self, model, loss_func, train_iter, test_iter, config, optimizer):
+    def __init__(self, model, loss_func, train_iter, test_iter, config, device, optimizer):
         self.model = model
         self.loss_func = loss_func
 
@@ -24,7 +24,7 @@ class WorkerBase(metaclass=ABCMeta):
         # Accuracy record
         self.acc_record = [0]
 
-        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.device = device
         self._level_length = None
         self._grad_len = 0
         self._gradients = None

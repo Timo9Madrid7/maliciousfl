@@ -35,13 +35,13 @@ if __name__ == '__main__':
 
     args = args_parser()
     if args.id <5:
-        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
     else:
-        device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
     yaml_path = 'Log/log.yaml'
     setup_logging(default_path=yaml_path)
-    PATH = './Model/ResNet20'
-    model = ResNet(BasicBlock, [3, 3, 3]).to(device)
+    PATH = './Model/LeNet'
+    model = LeNet().to(device)
     model.load_state_dict(torch.load(PATH))
     if args.id == 0:
         train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path)
@@ -56,9 +56,10 @@ if __name__ == '__main__':
         print("connect success!")
 
         grad_stub = FL_GrpcStub(grad_channel)
+        print(device)
 
         client = ClearDenseClient(client_id=args.id, model=model, loss_func=loss_func, train_iter=train_iter,
                                   test_iter=test_iter, config=config, optimizer=optimizer, device=device, grad_stub=grad_stub)
 
         client.fl_train(times=args.E)
-        client.write_acc_record(fpath="Eva/clear_avg_acc_cifar10.txt", info="clear_avg_acc_worker_cifar10")
+        client.write_acc_record(fpath="Eva/clear_avg_acc_test.txt", info="clear_avg_acc_worker_test")
