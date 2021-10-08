@@ -2,7 +2,7 @@ from Common.Node.workerbase import WorkerBase
 from Common.Grpc.fl_grpc_pb2 import GradRequest_float
 import torch
 from torch import nn
-
+import numpy as np
 import Common.config as config
 
 from Common.Model.LeNet import LeNet
@@ -22,7 +22,11 @@ class ClearTrimMeanClient(WorkerBase):
         self.grad_stub = grad_stub
 
     def update(self):
-        gradients = super().get_gradients()
+
+        if self.client_id < 10:
+            gradients = super().get_gradients()
+        else:
+            gradients = np.random.normal(0, 0.1, self._grad_len).tolist()
 
         res_grad_upd = self.grad_stub.UpdateGrad_float(GradRequest_float(id=self.client_id, grad_ori=gradients))
 
@@ -39,13 +43,14 @@ if __name__ == '__main__':
     yaml_path = 'Log/log.yaml'
     setup_logging(default_path=yaml_path)
 
-    PATH = './Model/ResNet20'
-    model = ResNet(BasicBlock, [3,3,3]).to(device)
+    PATH = './Model/LeNet'
+    #model = ResNet(BasicBlock, [3,3,3]).to(device)
+    model = LeNet().to(device)
     model.load_state_dict(torch.load(PATH))
     if args.id == 0:
-        train_iter, test_iter = load_data_cifar10(id=args.id, batch = args.batch_size, path = args.path)
+        train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path)
     else:
-        train_iter, test_iter = load_data_cifar10(id=args.id, batch = args.batch_size, path = args.path), None
+        train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path), None
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     loss_func = nn.CrossEntropyLoss()
 
@@ -60,4 +65,4 @@ if __name__ == '__main__':
                                   test_iter=test_iter, config=config, optimizer=optimizer, device=device, grad_stub=grad_stub)
 
         client.fl_train(times=args.E)
-        client.write_acc_record(fpath="Eva/clear_trimmean_acc_cifar10.txt", info="clear_trimmean_acc_worker")
+        client.write_acc_record(fpath="Eva/clear_trimmean_acc_mnist.txt", info="clear_trimmean_acc_worker")

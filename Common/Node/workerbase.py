@@ -102,8 +102,9 @@ class WorkerBase(metaclass=ABCMeta):
 
             test_acc = evaluate_accuracy(self.test_iter, self.model)
             self.eva_record += [test_acc]
-            print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
-                  % (epoch + 1, train_l_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))
+            # print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
+            #       % (epoch + 1, train_l_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))
+            print(train_acc_sum / n)
 
     def fl_train(self, times):
         self.acc_record = [0]
@@ -138,8 +139,9 @@ class WorkerBase(metaclass=ABCMeta):
                 if self.test_iter != None:
                     test_acc = evaluate_accuracy(self.test_iter, self.model)
                     self.acc_record += [test_acc]
-                    print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
-                  % (epoch + 1, train_l_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))
+                  #   print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
+                  # % (epoch + 1, train_l_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))
+                    print(test_acc)
 
     def write_acc_record(self, fpath, info):
         s = ""

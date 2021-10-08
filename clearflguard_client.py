@@ -1,3 +1,4 @@
+from Common.Node.workerbase import WorkerBase
 from Common.Node.workerbasev2 import WorkerBaseV2
 from Common.Grpc.fl_grpc_pb2 import GradRequest_float
 import torch
@@ -24,10 +25,12 @@ class ClearFLGuardClient(WorkerBaseV2):
     def update(self):
         if self.client_id < 10:
             weights = super().get_weights()
+            #gradients = super().get_gradients()
         else:
-            weights = np.random.normal(0, 0.1, self._weights_len).tolist()
-        if self.client_id == 0:
-            print(len(weights))
+            weights = np.random.normal(0, 0.1, self._weights_len()).tolist()
+            #gradients = np.random.normal(0, 0.1, self._grad_len()).tolist()
+        # if self.client_id == 0:
+        #     print(len(gradients))
 
         res_grad_upd = self.grad_stub.UpdateGrad_float(GradRequest_float(id=self.client_id, grad_ori=weights))
 
@@ -44,13 +47,13 @@ if __name__ == '__main__':
     yaml_path = 'Log/log.yaml'
     setup_logging(default_path=yaml_path)
 
-    PATH = './Model/ResNet20'
-    model = ResNet(BasicBlock, [3,3,3]).to(device)
+    PATH = './Model/LeNet'
+    model = LeNet().to(device)
     model.load_state_dict(torch.load(PATH))
     if args.id == 0:
-        train_iter, test_iter = load_data_cifar10(id=args.id, batch = args.batch_size, path = args.path)
+        train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path)
     else:
-        train_iter, test_iter = load_data_cifar10(id=args.id, batch = args.batch_size, path = args.path), None
+        train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path), None
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     loss_func = nn.CrossEntropyLoss()
 
@@ -61,8 +64,8 @@ if __name__ == '__main__':
 
         grad_stub = FL_GrpcStub(grad_channel)
 
-        client = ClearKrumClient(client_id=args.id, model=model, loss_func=loss_func, train_iter=train_iter,
+        client = ClearFLGuardClient(client_id=args.id, model=model, loss_func=loss_func, train_iter=train_iter,
                                   test_iter=test_iter, config=config, optimizer=optimizer, device=device, grad_stub=grad_stub)
 
         client.fl_train(times=args.E)
-        client.write_acc_record(fpath="Eva/clear_krum_acc_cifar10.txt", info="clear_krum_acc_worker_cifar10")
+        client.write_acc_record(fpath="Eva/clear_flgurd_acc_mnist.txt", info="clear_flguard_acc_worker_mnist")

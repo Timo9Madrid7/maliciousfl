@@ -5,9 +5,11 @@ import torch
 import torchvision
 
 PATH = './Model/LeNet'
-model = LeNet() #ResNet(BasicBlock, [3,3,3])
+model = LeNet()
+#model = ResNet(BasicBlock, [3,3,3])
 torch.save(model.state_dict(), PATH)
-model_load = LeNet() #ResNet(BasicBlock, [3,3,3])
+model_load = LeNet()
+#model_load = ResNet(BasicBlock, [3,3,3])
 model_load.load_state_dict(torch.load(PATH))
 print(model_load)
 def count_parameters(model):

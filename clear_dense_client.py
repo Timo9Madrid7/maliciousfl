@@ -15,7 +15,6 @@ from Common.Grpc.fl_grpc_pb2_grpc import FL_GrpcStub
 
 import numpy as np 
 
-
 class ClearDenseClient(WorkerBase):
     def __init__(self, client_id, model, loss_func, train_iter, test_iter, config, optimizer, device, grad_stub):
         super(ClearDenseClient, self).__init__(model=model, loss_func=loss_func, train_iter=train_iter,
@@ -24,17 +23,20 @@ class ClearDenseClient(WorkerBase):
         self.grad_stub = grad_stub
 
     def update(self):
-        gradients = super().get_gradients()
+        if self.client_id < 10:
+             gradients = super().get_gradients()
+        else:
+             gradients = np.random.normal(0, 0.1, self._grad_len).tolist()
 
         res_grad_upd = self.grad_stub.UpdateGrad_float.future(GradRequest_float(id=self.client_id, grad_ori=gradients))
-#malicious upload
+
         super().set_gradients(gradients=res_grad_upd.result().grad_upd)
 
 
 if __name__ == '__main__':
 
     args = args_parser()
-    if args.id <5:
+    if args.id <1:
         device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
     else:
         device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
@@ -42,6 +44,7 @@ if __name__ == '__main__':
     setup_logging(default_path=yaml_path)
     PATH = './Model/LeNet'
     model = LeNet().to(device)
+    #model = ResNet(BasicBlock, [3,3,3]).to(device)
     model.load_state_dict(torch.load(PATH))
     if args.id == 0:
         train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path)

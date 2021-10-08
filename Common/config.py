@@ -1,5 +1,5 @@
 num_epochs = 5
-num_workers = 10 
+num_workers = 10
 
 idx_max_length = 50000
 grad_shift = 2 ** 20

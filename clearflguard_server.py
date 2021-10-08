@@ -8,6 +8,8 @@ from scipy.spatial.distance import pdist
 from sklearn.metrics.pairwise import pairwise_distances
 from scipy import stats
 import numpy as np
+import torch
+from Common.Model.LeNet import LeNet
 
 
 class ClearFLGuardServer(FlGrpcServer):
@@ -38,8 +40,8 @@ class FLGuardGradientHandler(Handler):
         # cluster
         weights_in = np.array(data_in).reshape((self.num_workers, -1))
         distance_matrix = pairwise_distances(weights_in, metric='cosine')
-        self.clusterer.fit(distance_matrix)
-        label = self.clusterer.labels_
+        self.cluster.fit(distance_matrix)
+        label = self.cluster.labels_
         b = []
         if (label == -1).all():
             b = [i for i in range(self.num_workers)]
@@ -57,7 +59,7 @@ class FLGuardGradientHandler(Handler):
             edis.append(dist)
         St = np.median(np.array(edis))
         for i in range(len(b)):
-            weights_in[b[i]] = weights_in[b[i]] * min(1, St/e[b[i]])
+            weights_in[b[i]] = weights_in[b[i]] * min(1, St/edis[b[i]])
         
         weightstar = np.sum(weights_in[b], axis=0) / len(b)
         delta = self.lambdaa * St
@@ -67,8 +69,9 @@ class FLGuardGradientHandler(Handler):
 
 
 if __name__ == "__main__":
-    PATH = './Model/ResNet20'
-    model = ResNet(BasicBlock, [3,3,3]).to(device)
+    PATH = './Model/LeNet'
+    device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
+    model = LeNet().to(device)
     model.load_state_dict(torch.load(PATH))
     weights = []
     for param in model.parameters():
