@@ -3,15 +3,17 @@ import torch
 import time
 from abc import ABCMeta, abstractmethod
 
+from torch._C import device
+
 from Common.Utils.evaluate import evaluate_accuracy
-# uploading weight
+
 logger = logging.getLogger('client.workerbase')
 
 '''
 This is the worker for sharing the local weights.
 '''
 class WorkerBaseV2(metaclass=ABCMeta):
-    def __init__(self, model, loss_func, train_iter, test_iter, config, device, optimizer):
+    def __init__(self, model, loss_func, train_iter, test_iter, config, optimizer, device):
         self.model = model
         self.loss_func = loss_func
 
@@ -24,7 +26,6 @@ class WorkerBaseV2(metaclass=ABCMeta):
         # Accuracy record
         self.acc_record = [0]
 
-        #self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.device = device
         self._level_length = None
         self._weights_len = 0
@@ -59,10 +60,10 @@ class WorkerBaseV2(metaclass=ABCMeta):
         self._level_length = [0]
 
         for param in self.model.parameters():
-            self._level_length.append(param.grad.numel() + self._level_length[-1])
-            self._gradients += param.grad.view(-1).numpy().tolist()
+            self._level_length.append(param.data.numel() + self._level_length[-1])
+            self._weights += param.data.view(-1).numpy().tolist()
 
-        self._grad_len = len(self._gradients)
+        self._weights_len = len(self._weights)
         return loss.cpu().item(), y_hat
 
     def upgrade(self):
@@ -82,28 +83,39 @@ class WorkerBaseV2(metaclass=ABCMeta):
             param.data = weights_re
             idx += 1
 
-    def train(self):
+    def train(self): # This function is for local train one epoch using local dataset on client
         """ General local training methods """
         self.acc_record = [0]
-        for epoch in range(self.config.num_epochs):
-            train_l_sum, train_acc_sum, n, batch_count, start = 0.0, 0.0, 0, 0, time.time()
-            for X, y in self.train_iter:
-                X = X.to(self.device)
-                y = y.to(self.device)
-                y_hat = self.model(X)
-                l = self.loss_func(y_hat, y)
-                self.optimizer.zero_grad()
-                l.backward()
-                self.optimizer.step()
-                train_l_sum += l.cpu().item()
-                train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item()
-                n += y.shape[0]
-                batch_count += 1
+        #for epoch in range(self.config.num_epochs):
+        train_l_sum, train_acc_sum, n, batch_count, start = 0.0, 0.0, 0, 0, time.time()
+        print(self.client_id)  
+        for X, y in self.train_iter:
+            X = X.to(self.device)
+            y = y.to(self.device)
+            y_hat = self.model(X)
+            l = self.loss_func(y_hat, y)
+            self.optimizer.zero_grad()
+            l.backward()
+            self.optimizer.step()
+            train_l_sum += l.cpu().item()
+            train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item()
+            n += y.shape[0]
+            batch_count += 1
+        
+        self._weights = []
+        self._level_length = [0]
+        
+        for param in self.model.parameters():
+            self._level_length.append(param.data.numel() + self._level_length[-1])
+            self._weights += param.data.view(-1).numpy().tolist()
 
+        self._weights_len = len(self._weights)
+          
+        if self.client_id == 0:
             test_acc = evaluate_accuracy(self.test_iter, self.model)
-            self.eva_record += [test_acc]
-            print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
-                  % (epoch + 1, train_l_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))
+            self.acc_record += [test_acc]
+            print('loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
+                  % (train_l_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))
 
     def fl_train(self, times):
         self.acc_record = [0]
