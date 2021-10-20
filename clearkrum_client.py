@@ -7,7 +7,7 @@ import Common.config as config
 import os
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import ResNet, BasicBlock
-from Common.Utils.data_loader import load_data_mnist, load_data_cifar10
+from Common.Utils.data_loader import load_data_mnist, load_data_cifar10, load_data_fmnist
 from Common.Utils.set_log import setup_logging
 from Common.Utils.options import args_parser
 import grpc
@@ -22,7 +22,7 @@ class ClearKrumClient(WorkerBase):
         self.grad_stub = grad_stub
 
     def update(self):
-        if self.client_id < 10:
+        if self.client_id < 1:
             gradients = super().get_gradients()
         else:
             gradients = np.random.normal(0, 0.1, self._grad_len).tolist()
@@ -49,9 +49,9 @@ if __name__ == '__main__':
     model = LeNet().to(device)
     model.load_state_dict(torch.load(PATH))
     if args.id == 0:
-        train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path)
+        train_iter, test_iter = load_data_fmnist(id=args.id, batch = args.batch_size, path = args.path)
     else:
-        train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path), None
+        train_iter, test_iter = load_data_fmnist(id=args.id, batch = args.batch_size, path = args.path), None
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     loss_func = nn.CrossEntropyLoss()
 

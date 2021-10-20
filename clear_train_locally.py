@@ -39,9 +39,11 @@ class ClearDenseClient(WorkerBaseV2):
 if __name__ == '__main__':
 
     args = args_parser()
-    device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
-    PATH = './Model/LeNet' #'./Model/ResNet20'
-    model = copy.deepcopy(LeNet()).to(device)#ResNet(BasicBlock, [3, 3, 3]).to(device)
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    #PATH = './Model/LeNet'
+    PATH = './Model/ResNet20'
+    #model = copy.deepcopy(LeNet()).to(device)
+    model = copy.deepcopy(ResNet(BasicBlock, [3, 3, 3])).to(device)
     model.load_state_dict(torch.load(PATH))
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     loss_func = nn.CrossEntropyLoss()
@@ -49,9 +51,9 @@ if __name__ == '__main__':
     for i in range(config.num_workers):
         args.id = i
         if i == 0:
-            train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path) #load_data_cifar10(id=args.id, batch = args.batch_size, path = args.path)
+            train_iter, test_iter = load_data_cifar10(id=args.id, batch = args.batch_size, path = args.path) #load_data_cifar10(id=args.id, batch = args.batch_size, path = args.path)
         else:
-            train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path), None
+            train_iter, test_iter = load_data_cifar10(id=args.id, batch = args.batch_size, path = args.path), None
         
         client.append(ClearDenseClient(client_id=args.id, model=model, loss_func=loss_func, train_iter=train_iter,
                                   test_iter=test_iter, config=config, optimizer=optimizer, device=device, grad_stub=None))
@@ -60,7 +62,7 @@ if __name__ == '__main__':
     acc_record = [0]
     counts = 0
     for epoch in range(config.num_epochs):
-        print(epoch:)
+        print('epoch:',epoch)
         train_l_sum, train_acc_sum, n, batch_count, start = 0.0, 0.0, 0, 0, time.time()
         weights = []
         for i in range(config.num_workers):

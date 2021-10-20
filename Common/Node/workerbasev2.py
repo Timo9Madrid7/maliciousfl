@@ -88,7 +88,7 @@ class WorkerBaseV2(metaclass=ABCMeta):
         self.acc_record = [0]
         #for epoch in range(self.config.num_epochs):
         train_l_sum, train_acc_sum, n, batch_count, start = 0.0, 0.0, 0, 0, time.time()
-        print(self.client_id)  
+        #print(self.client_id)
         for X, y in self.train_iter:
             X = X.to(self.device)
             y = y.to(self.device)

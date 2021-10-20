@@ -8,14 +8,14 @@ import Common.config as config
 import os
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import ResNet, BasicBlock
-from Common.Utils.data_loader import load_data_mnist, load_data_cifar10
+from Common.Utils.data_loader import load_data_mnist, load_data_cifar10, load_data_fmnist
 from Common.Utils.set_log import setup_logging
 from Common.Utils.options import args_parser
 import grpc
 from Common.Grpc.fl_grpc_pb2_grpc import FL_GrpcStub
 import numpy as np
 
-class ClearFLGuardClient(WorkerBaseV2):
+class ClearFLGuardClient(WorkerBase):
     def __init__(self, client_id, model, loss_func, train_iter, test_iter, config, optimizer, device, grad_stub):
         super(ClearFLGuardClient, self).__init__(model=model, loss_func=loss_func, train_iter=train_iter,
                                                test_iter=test_iter, config=config, optimizer=optimizer, device=device)
@@ -24,17 +24,18 @@ class ClearFLGuardClient(WorkerBaseV2):
 
     def update(self):
         if self.client_id < 10:
-            weights = super().get_weights()
-            #gradients = super().get_gradients()
+            #weights = super().get_weights()
+            gradients = super().get_gradients()
         else:
-            weights = np.random.normal(0, 0.1, self._weights_len()).tolist()
-            #gradients = np.random.normal(0, 0.1, self._grad_len()).tolist()
+            #weights = np.random.normal(0, 0.1, self._weights_len()).tolist()
+            gradients = super().get_gradients()
+            gradients = np.random.normal(0, 0.1, len(gradients)).tolist()
         # if self.client_id == 0:
         #     print(len(gradients))
 
-        res_grad_upd = self.grad_stub.UpdateGrad_float(GradRequest_float(id=self.client_id, grad_ori=weights))
+        res_grad_upd = self.grad_stub.UpdateGrad_float(GradRequest_float(id=self.client_id, grad_ori=gradients))
 
-        super().set_weights(weights=res_grad_upd.grad_upd)
+        super().set_gradients(gradients=res_grad_upd.grad_upd)
 
 
 if __name__ == '__main__':
@@ -68,4 +69,4 @@ if __name__ == '__main__':
                                   test_iter=test_iter, config=config, optimizer=optimizer, device=device, grad_stub=grad_stub)
 
         client.fl_train(times=args.E)
-        client.write_acc_record(fpath="Eva/clear_flgurd_acc_mnist.txt", info="clear_flguard_acc_worker_mnist")
+        client.write_acc_record(fpath="Eva/clear_flgurd_acc_fmnist.txt", info="clear_flguard_acc_worker_mnist")

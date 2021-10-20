@@ -11,5 +11,7 @@ def args_parser():
     parser.add_argument('--momentum', type=float, default=0.9, help="SGD momentum (default: 0.5)")
     parser.add_argument('--id', type=int, default=0, help='client id (default: 1)')
     parser.add_argument('--path', type=str, default='./Data/MNIST/', help="dataset")
+    #parser.add_argument('--path', type=str, default='./Data/FMNIST/', help="dataset")
+    #parser.add_argument('--path', type=str, default='./Data/CIFAR10/', help="dataset")
     args = parser.parse_args()
     return args

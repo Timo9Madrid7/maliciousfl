@@ -58,7 +58,7 @@ class WorkerBase(metaclass=ABCMeta):
 
         for param in self.model.parameters():
             self._level_length.append(param.grad.numel() + self._level_length[-1])
-            self._gradients += param.grad.view(-1).numpy().tolist()
+            self._gradients += param.grad.view(-1).cpu().numpy().tolist()
 
         self._grad_len = len(self._gradients)
         return loss.cpu().item(), y_hat

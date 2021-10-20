@@ -40,6 +40,7 @@ if __name__ == '__main__':
         device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
     else:
         device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
+
     yaml_path = 'Log/log.yaml'
     setup_logging(default_path=yaml_path)
     PATH = './Model/LeNet'
@@ -57,7 +58,7 @@ if __name__ == '__main__':
 
     with grpc.insecure_channel(server_grad, options=config.grpc_options) as grad_channel:
         print("connect success!")
-
+        print(args.id)
         grad_stub = FL_GrpcStub(grad_channel)
         print(device)
 
@@ -65,4 +66,4 @@ if __name__ == '__main__':
                                   test_iter=test_iter, config=config, optimizer=optimizer, device=device, grad_stub=grad_stub)
 
         client.fl_train(times=args.E)
-        client.write_acc_record(fpath="Eva/clear_avg_acc_test.txt", info="clear_avg_acc_worker_test")
+        client.write_acc_record(fpath="Eva/clear_avg_acc_test_mnist.txt", info="clear_avg_acc_worker_test")

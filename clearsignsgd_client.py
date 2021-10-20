@@ -7,7 +7,7 @@ import Common.config as config
 
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import ResNet, BasicBlock
-from Common.Utils.data_loader import load_data_mnist, load_data_cifar10
+from Common.Utils.data_loader import load_data_mnist, load_data_cifar10, load_data_fmnist
 from Common.Utils.set_log import setup_logging
 from Common.Utils.options import args_parser
 import grpc
@@ -48,9 +48,9 @@ if __name__ == '__main__':
     model = LeNet().to(device)
     model.load_state_dict(torch.load(PATH))
     if args.id == 0:
-        train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path)
+        train_iter, test_iter = load_data_fmnist(id=args.id, batch = args.batch_size, path = args.path)
     else:
-        train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path), None
+        train_iter, test_iter = load_data_fmnist(id=args.id, batch = args.batch_size, path = args.path), None
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=5e-4)
     loss_func = nn.CrossEntropyLoss()
 
@@ -65,4 +65,4 @@ if __name__ == '__main__':
                                   test_iter=test_iter, config=config, optimizer=optimizer, device=device, grad_stub=grad_stub)
 
         client.fl_train(times=args.E)
-        client.write_acc_record(fpath="Eva/clear_signSGD_acc_mnist.txt", info="clear_signSGD_acc_worker_mnist")
+        client.write_acc_record(fpath="Eva/clear_signSGD_acc_fmnist.txt", info="clear_signSGD_acc_worker_mnist")
