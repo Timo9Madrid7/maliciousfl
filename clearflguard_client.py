@@ -3,9 +3,9 @@ from Common.Node.workerbasev2 import WorkerBaseV2
 from Common.Grpc.fl_grpc_pb2 import GradRequest_float
 import torch
 from torch import nn
-import random
+
 import Common.config as config
-import os
+
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import ResNet, BasicBlock
 from Common.Utils.data_loader import load_data_mnist, load_data_cifar10, load_data_fmnist
@@ -15,7 +15,7 @@ import grpc
 from Common.Grpc.fl_grpc_pb2_grpc import FL_GrpcStub
 import numpy as np
 
-class ClearFLGuardClient(WorkerBase):
+class ClearFLGuardClient(WorkerBaseV2):
     def __init__(self, client_id, model, loss_func, train_iter, test_iter, config, optimizer, device, grad_stub):
         super(ClearFLGuardClient, self).__init__(model=model, loss_func=loss_func, train_iter=train_iter,
                                                test_iter=test_iter, config=config, optimizer=optimizer, device=device)
@@ -23,24 +23,23 @@ class ClearFLGuardClient(WorkerBase):
         self.grad_stub = grad_stub
 
     def update(self):
-        if self.client_id < 10:
-            #weights = super().get_weights()
-            gradients = super().get_gradients()
+        if self.client_id < 7:
+            weights = super().get_weights()
+            #gradients = super().get_gradients()
         else:
-            #weights = np.random.normal(0, 0.1, self._weights_len()).tolist()
-            gradients = super().get_gradients()
-            gradients = np.random.normal(0, 0.1, len(gradients)).tolist()
+            weights = np.random.normal(0, 0.1, self._weights_len).tolist()
+            #gradients = np.random.normal(0, 0.1, self._grad_len).tolist()
         # if self.client_id == 0:
         #     print(len(gradients))
 
-        res_grad_upd = self.grad_stub.UpdateGrad_float(GradRequest_float(id=self.client_id, grad_ori=gradients))
+        res_grad_upd = self.grad_stub.UpdateGrad_float(GradRequest_float(id=self.client_id, grad_ori=weights))
 
-        super().set_gradients(gradients=res_grad_upd.grad_upd)
+        super().set_weights(weights=res_grad_upd.grad_upd)
 
 
 if __name__ == '__main__':
     args = args_parser()
-    if args.id < 5:
+    if args.id < 1:
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     else:
         device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
@@ -69,4 +68,4 @@ if __name__ == '__main__':
                                   test_iter=test_iter, config=config, optimizer=optimizer, device=device, grad_stub=grad_stub)
 
         client.fl_train(times=args.E)
-        client.write_acc_record(fpath="Eva/clear_flgurd_acc_fmnist.txt", info="clear_flguard_acc_worker_mnist")
+        client.write_acc_record(fpath="Eva/clear_flgurd_acc_mnist.txt", info="clear_flguard_acc_worker_mnist")

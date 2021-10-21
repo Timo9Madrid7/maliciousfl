@@ -1,7 +1,7 @@
 from Common.Server.fl_grpc_server import FlGrpcServer
 from Common.Grpc.fl_grpc_pb2 import GradResponse_float
 from Common.Handler.handler import Handler
-
+from sklearn.cluster import DBSCAN
 import Common.config as config
 import hdbscan
 from scipy.spatial.distance import pdist
@@ -22,7 +22,7 @@ class ClearFLGuardServer(FlGrpcServer):
 
     def UpdateGrad_float(self, request, context): # using flguard
         data_dict = {request.id: request.grad_ori}
-        print("have received:", data_dict.keys())
+        #print("have received:", data_dict.keys())
         rst = super().process(dict_data=data_dict, handler=self.handler.computation)
         return GradResponse_float(grad_upd=rst)
 
@@ -34,7 +34,7 @@ class FLGuardGradientHandler(Handler):
         self.f = f
         self.weights = weights
         self.lambdaa = 0.001
-        self.cluster = hdbscan.HDBSCAN(metric='precomputed')
+        self.cluster = hdbscan.HDBSCAN(metric='precomputed', min_cluster_size=2)
 
     def computation(self, data_in):
         # cluster
@@ -51,7 +51,8 @@ class FLGuardGradientHandler(Handler):
                 if value != -1:
                     bucket[value] += 1
             majority = np.argmax(bucket)
-            b = np.where(label == majority).tolist()
+            b = np.array(np.where(label == majority))
+            b = b.reshape(b.shape[1],).tolist()
         # euclidean distance between self.weights and clients' weights
         edis = []
         for i in range(self.num_workers):
