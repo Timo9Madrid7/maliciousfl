@@ -48,16 +48,22 @@ class WorkerBase(metaclass=ABCMeta):
         x = x.to(self.device)
         y = y.to(self.device)
 
-        y_hat = self.model(x)
-        loss = self.loss_func(y_hat, y)
-        self.optimizer.zero_grad()
-        loss.backward()
+        y_hat = self.model(x) # forward
+        loss = self.loss_func(y_hat, y) # loss calculation
+        # every epoch uses the new calculated gradients, 
+        # rather than the accumulated ones
+        self.optimizer.zero_grad() 
+        loss.backward() # backward
 
         self._gradients = []
         self._level_length = [0]
 
+        # to store the gradients layer by layer,
+        # so both shapes and values should be stored
         for param in self.model.parameters():
             self._level_length.append(param.grad.numel() + self._level_length[-1])
+            # update the gradients after the backward propagation
+            # these gradients will be uploaded before the next epoch
             self._gradients += param.grad.view(-1).cpu().numpy().tolist()
 
         self._grad_len = len(self._gradients)
@@ -71,8 +77,10 @@ class WorkerBase(metaclass=ABCMeta):
         # except Exception as e:
         #     logger.error(e)
 
+        # to update(replace) the gradients layer by layer
         idx = 0
         for param in self.model.parameters():
+            # the gradients are flattened, so they should be restored sequentially
             tmp = self._gradients[self._level_length[idx]:self._level_length[idx + 1]]
             grad_re = torch.tensor(tmp, device=self.device)
             grad_re = grad_re.view(param.grad.size())
@@ -80,6 +88,7 @@ class WorkerBase(metaclass=ABCMeta):
             param.grad = grad_re
             idx += 1
 
+        # update all parameters
         self.optimizer.step()
 
     def train(self):
@@ -111,8 +120,12 @@ class WorkerBase(metaclass=ABCMeta):
         counts = 0
         for epoch in range(self.config.num_epochs):
             train_l_sum, train_acc_sum, n, batch_count, start = 0.0, 0.0, 0, 0, time.time()
+            # X.shape = (batch_size, Data_size) := (128,1,28,28) 
+            # y.shape = (batch_size)
             for X, y in self.train_iter:
                 counts += 1
+
+                # times = 1, so this part will not execute under the default setting
                 if (counts % times) != 0:
                     X = X.to(self.device)
                     y = y.to(self.device)
@@ -125,12 +138,11 @@ class WorkerBase(metaclass=ABCMeta):
                     train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item()
                     n += y.shape[0]
                     batch_count += 1
-
                     continue
 
-                loss, y_hat = self.train_step(X, y)
-                self.update()
-                self.upgrade()
+                loss, y_hat = self.train_step(X, y) # forward&backward propagation
+                self.update() # upload&download the gradients
+                self.upgrade() # push the downloaded gradients into the model
                 train_l_sum += loss
                 train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item()
                 n += y.shape[0]

@@ -28,6 +28,7 @@ class AvgGradientHandler(Handler):
         self.num_workers = num_workers
 
     def computation(self, data_in):
+        # average aggregator
         grad_in = np.array(data_in).reshape((self.num_workers, -1)).mean(axis=0)
         return grad_in.tolist()
 

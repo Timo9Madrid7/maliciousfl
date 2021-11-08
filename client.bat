@@ -1,0 +1,1 @@
+python clear_dense_client.py --id 0

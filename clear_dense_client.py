@@ -19,23 +19,27 @@ class ClearDenseClient(WorkerBase):
     def __init__(self, client_id, model, loss_func, train_iter, test_iter, config, optimizer, device, grad_stub):
         super(ClearDenseClient, self).__init__(model=model, loss_func=loss_func, train_iter=train_iter,
                                                test_iter=test_iter, config=config, optimizer=optimizer, device=device)
-        self.client_id = client_id
-        self.grad_stub = grad_stub
+        self.client_id = client_id # client id
+        self.grad_stub = grad_stub # communication channel
 
     def update(self):
         if self.client_id < 10:
              gradients = super().get_gradients()
         else:
+            # unused
              gradients = np.random.normal(0, 0.1, self._grad_len).tolist()
 
+        # upload local gradients
         res_grad_upd = self.grad_stub.UpdateGrad_float.future(GradRequest_float(id=self.client_id, grad_ori=gradients))
 
+        # receive global gradients
         super().set_gradients(gradients=res_grad_upd.result().grad_upd)
 
 
 if __name__ == '__main__':
 
-    args = args_parser()
+    args = args_parser() # load setting
+    # only cpu used here
     if args.id <1:
         device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
     else:
@@ -62,8 +66,17 @@ if __name__ == '__main__':
         grad_stub = FL_GrpcStub(grad_channel)
         print(device)
 
-        client = ClearDenseClient(client_id=args.id, model=model, loss_func=loss_func, train_iter=train_iter,
-                                  test_iter=test_iter, config=config, optimizer=optimizer, device=device, grad_stub=grad_stub)
+        client = ClearDenseClient(
+            client_id=args.id, 
+            model=model, 
+            loss_func=loss_func, 
+            train_iter=train_iter,
+            test_iter=test_iter, 
+            config=config, 
+            optimizer=optimizer, 
+            device=device, 
+            grad_stub=grad_stub
+        )
 
         client.fl_train(times=args.E)
         client.write_acc_record(fpath="Eva/clear_avg_acc_test_mnist.txt", info="clear_avg_acc_worker_test")
