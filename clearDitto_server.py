@@ -34,7 +34,6 @@ class AvgGradientHandler(Handler):
         grad_in = np.array(data_in).reshape((self.num_workers, -1)).mean(axis=0)
         return grad_in.tolist()
 
-
 if __name__ == "__main__":
     gradient_handler = AvgGradientHandler(num_workers=config.num_workers)
 

@@ -77,6 +77,7 @@ if __name__ == "__main__":
     weights = []
     for param in model.parameters():
         weights += param.data.view(-1).numpy().tolist()
+    # config.f = 1
     gradient_handler = FLGuardGradientHandler(num_workers=config.num_workers, f = config.f, weights=np.array(weights))
 
     flguard_server = ClearFLGuardServer(address=config.server1_address, port=config.port1, config=config,

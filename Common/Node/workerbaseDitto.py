@@ -1,6 +1,8 @@
 import logging
+from logging import config
 import torch
 import time
+import copy
 from abc import ABCMeta, abstractmethod
 
 from Common.Utils.evaluate import evaluate_accuracy
@@ -13,6 +15,7 @@ This is the worker for sharing the local gradients.
 class WorkerBase(metaclass=ABCMeta):
     def __init__(self, model, loss_func, train_iter, test_iter, config, device, optimizer):
         self.model = model
+        self.local_model = copy.deepcopy(self.model) # local model
         self.loss_func = loss_func
 
         self.train_iter = train_iter
@@ -21,33 +24,28 @@ class WorkerBase(metaclass=ABCMeta):
         self.config = config
         self.optimizer = optimizer
 
-        # Accuracy record
         self.acc_record = [0]
 
         self.device = device
         self._level_length = None
         self._grad_len = 0
         self._gradients = None
-
+        self._local_gradients = None # local gradients
+        
     def get_gradients(self):
         """ getting gradients """
         return self._gradients
-
+    
     def set_gradients(self, gradients):
         """ setting gradients """
-        # try:
-        #     if len(gradients) < self._grad_len:
-        #         raise Exception("gradients length error!")
-        # except Exception as e:
-        #     logger.error(e)
-        # else:
         self._gradients = gradients
+    
 
     def train_step(self, x, y):
         """ Find the update gradient of each step in collaborative learning """
         x = x.to(self.device)
         y = y.to(self.device)
-
+        
         y_hat = self.model(x) # forward
         loss = self.loss_func(y_hat, y) # loss calculation
         # every epoch uses the new calculated gradients, 
@@ -57,6 +55,7 @@ class WorkerBase(metaclass=ABCMeta):
 
         self._gradients = []
         self._level_length = [0]
+        
 
         # to store the gradients layer by layer,
         # so both shapes and values should be stored
@@ -67,16 +66,9 @@ class WorkerBase(metaclass=ABCMeta):
             self._gradients += param.grad.view(-1).cpu().numpy().tolist()
 
         self._grad_len = len(self._gradients)
-        return loss.cpu().item(), y_hat
-
+            
     def upgrade(self):
         """ Use the processed gradient to update the gradient """
-        # try:
-        #     if len(self._gradients) != self._grad_len:
-        #         raise Exception("gradients is wrong")
-        # except Exception as e:
-        #     logger.error(e)
-
         # to update(replace) the gradients layer by layer
         idx = 0
         for param in self.model.parameters():
@@ -91,37 +83,36 @@ class WorkerBase(metaclass=ABCMeta):
         # update all parameters
         self.optimizer.step()
 
-    def train(self):
-        """ General local training methods """
-        self.acc_record = [0]
-        for epoch in range(self.config.num_epochs):
-            train_l_sum, train_acc_sum, n, batch_count, start = 0.0, 0.0, 0, 0, time.time()
-            for X, y in self.train_iter:
-                X = X.to(self.device)
-                y = y.to(self.device)
-                y_hat = self.model(X)
-                l = self.loss_func(y_hat, y)
-                self.optimizer.zero_grad()
-                l.backward()
-                self.optimizer.step()
-                train_l_sum += l.cpu().item()
-                train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item()
-                n += y.shape[0]
-                batch_count += 1
+    def local_train(self, x, y, coef=1.25):
+        # extract global weights
+        global_weight = []
+        for param in self.model.parameters():
+            global_weight.append(param)
+        
+        # train the local model
+        x = x.to(self.device)
+        y = y.to(self.device)
+        y_hat = self.local_model(x) # deepcopy from global model
+        loss = self.loss_func(y_hat, y) # identical loss_func
+        self.optimizer.zero_grad() # identical optimizer
+        loss.backward()
 
-            test_acc = evaluate_accuracy(self.test_iter, self.model)
-            self.eva_record += [test_acc]
-            # print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
-            #       % (epoch + 1, train_l_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))
-            print(train_acc_sum / n)
+        # update the local model
+        ly = 0
+        for param in self.local_model.parameters():
+            param.grad = param.grad + coef * (param - global_weight[ly])
+            ly += 1
+        self.optimizer.step()
+
+        # return the local evaluation
+        return loss.cpu().item(), y_hat
+
 
     def fl_train(self, times):
         self.acc_record = [0]
         counts = 0
         for epoch in range(self.config.num_epochs):
             train_l_sum, train_acc_sum, n, batch_count, start = 0.0, 0.0, 0, 0, time.time()
-            # X.shape = (batch_size, Data_size) := (128,1,28,28) 
-            # y.shape = (batch_size)
             for X, y in self.train_iter:
                 counts += 1
 
@@ -140,9 +131,10 @@ class WorkerBase(metaclass=ABCMeta):
                     batch_count += 1
                     continue
 
-                loss, y_hat = self.train_step(X, y) # forward&backward propagation
+                self.train_step(X, y) # forward&backward propagation
                 self.update() # upload&download the gradients
-                self.upgrade() # push the downloaded gradients into the model
+                self.upgrade() # push the global gradients into the model
+                loss, y_hat = self.local_train(X, y) # update local model
                 train_l_sum += loss
                 train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item()
                 n += y.shape[0]
@@ -169,3 +161,4 @@ class WorkerBase(metaclass=ABCMeta):
     @abstractmethod
     def update(self):
         pass
+

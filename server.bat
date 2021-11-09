@@ -1,2 +1,2 @@
 python model_prepare.py
-python clear_dense_server.py
+python clearDitto_server.py

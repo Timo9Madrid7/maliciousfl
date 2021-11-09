@@ -15,6 +15,7 @@ def evaluate_accuracy(data_iter, net, device=None):
         for X, y in data_iter:
             if isinstance(net, torch.nn.Module):
                 net.eval()
+                # count correct number
                 acc_sum += (net(X.to(device)).argmax(dim=1) == y.to(device)).float().sum().cpu().item()
                 net.train()
             else:
