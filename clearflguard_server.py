@@ -39,12 +39,14 @@ class FLGuardGradientHandler(Handler):
     def computation(self, data_in):
         # cluster
         weights_in = np.array(data_in).reshape((self.num_workers, -1))
+        # Cosine distance is defined as 1.0 minus the cosine similarity.
+        # 2:contradictory, 1:perpendicular, 0:same direction
         distance_matrix = pairwise_distances(weights_in, metric='cosine')
         self.cluster.fit(distance_matrix)
         label = self.cluster.labels_
-        b = []
-        if (label == -1).all():
-            b = [i for i in range(self.num_workers)]
+        b = [] # IDs of benign clients
+        if (label == -1).all(): # if all gradients belong to one cluster, or cannot be distinguished
+            b = [i for i in range(self.num_workers)] # all clients are benign
         else:
             bucket = np.zeros(label.shape)
             for value in label:
@@ -56,15 +58,15 @@ class FLGuardGradientHandler(Handler):
         # euclidean distance between self.weights and clients' weights
         edis = []
         for i in range(self.num_workers):
-            dist = np.linalg.norm(self.weights - weights_in[i])
+            dist = np.linalg.norm(self.weights - weights_in[i]) # distance of weights between every clients to the last round
             edis.append(dist)
-        St = np.median(np.array(edis))
+        St = np.median(np.array(edis)) # clipping bound
         for i in range(len(b)):
-            weights_in[b[i]] = weights_in[b[i]] * min(1, St/edis[b[i]])
+            weights_in[b[i]] = weights_in[b[i]] * min(1, St/edis[b[i]]) # clipping
         
         weightstar = np.sum(weights_in[b], axis=0) / len(b)
-        delta = self.lambdaa * St
-        weight_agg = weightstar + np.random.normal(0, delta, weightstar.shape)
+        delta = self.lambdaa * St # noising delta
+        weight_agg = weightstar + np.random.normal(0, delta, weightstar.shape) # noising
         self.weights = weight_agg
         return weight_agg.tolist()
 
