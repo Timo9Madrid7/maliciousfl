@@ -23,7 +23,7 @@ class ClearDenseClient(WorkerBase):
         self.grad_stub = grad_stub # communication channel
 
     def update(self):
-        if self.client_id < 3:
+        if self.client_id < 6:
              gradients = super().get_gradients()
         else:
             # malicious update
