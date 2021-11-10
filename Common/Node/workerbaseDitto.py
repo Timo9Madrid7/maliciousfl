@@ -23,6 +23,7 @@ class WorkerBase(metaclass=ABCMeta):
 
         self.config = config
         self.optimizer = optimizer
+        self.local_optimizer = torch.optim.Adam(self.local_model.parameters(), config.llr) # local optimizer
 
         self.acc_record = [0]
 
@@ -83,7 +84,7 @@ class WorkerBase(metaclass=ABCMeta):
         # update all parameters
         self.optimizer.step()
 
-    def local_train(self, x, y, coef=1.25):
+    def local_train(self, x, y):
         # extract global weights
         global_weight = []
         for param in self.model.parameters():
@@ -94,15 +95,15 @@ class WorkerBase(metaclass=ABCMeta):
         y = y.to(self.device)
         y_hat = self.local_model(x) # deepcopy from global model
         loss = self.loss_func(y_hat, y) # identical loss_func
-        self.optimizer.zero_grad() # identical optimizer
+        self.local_optimizer.zero_grad() # identical optimizer
         loss.backward()
 
         # update the local model
         ly = 0
         for param in self.local_model.parameters():
-            param.grad = param.grad + coef * (param - global_weight[ly])
+            param.grad += self.config.coef * (param - global_weight[ly])
             ly += 1
-        self.optimizer.step()
+        self.local_optimizer.step()
 
         # return the local evaluation
         return loss.cpu().item(), y_hat
@@ -142,7 +143,7 @@ class WorkerBase(metaclass=ABCMeta):
 
                 if self.test_iter != None:
                     # evaluation
-                    test_acc = evaluate_accuracy(self.test_iter, self.model)
+                    test_acc = evaluate_accuracy(self.test_iter, self.local_model) # test by local model
                     self.acc_record += [test_acc]
                   #   print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
                   # % (epoch + 1, train_l_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))

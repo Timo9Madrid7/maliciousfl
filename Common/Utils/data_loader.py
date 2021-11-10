@@ -5,7 +5,7 @@ import pdb
 def load_data_mnist(id, batch=None, path=None):
     data = torch.load(path+'/'+'mnist_train_'+str(id)+'_.pt')
     train_iter = torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
-    if id == 0: # eval 只对 id=0 做?
+    if id == 0: # eval 只对 id=0 做
         transforms = torchvision.transforms
         # train=False: load test.pt
         # transforms.Compose(): chain various tranforms together

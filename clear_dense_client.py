@@ -23,10 +23,10 @@ class ClearDenseClient(WorkerBase):
         self.grad_stub = grad_stub # communication channel
 
     def update(self):
-        if self.client_id < 10:
+        if self.client_id < 3:
              gradients = super().get_gradients()
         else:
-            # unused
+            # malicious client when id>=3
              gradients = np.random.normal(0, 0.1, self._grad_len).tolist()
 
         # upload local gradients

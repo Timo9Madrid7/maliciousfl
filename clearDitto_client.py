@@ -23,10 +23,10 @@ class ClearDenseClient(WorkerBase):
         self.grad_stub = grad_stub # communication channel
 
     def update(self):
-        if self.client_id < 10:
+        if self.client_id < 3:
              gradients = super().get_gradients()
         else:
-            # unused
+            # malicious update
              gradients = np.random.normal(0, 0.1, self._grad_len).tolist()
 
         # upload local gradients
@@ -61,6 +61,7 @@ if __name__ == '__main__':
 
     with grpc.insecure_channel(server_grad, options=config.grpc_options) as grad_channel:
         print("connect success!")
+        print("local constraint: lambda =", config.coef)
         print(args.id)
         grad_stub = FL_GrpcStub(grad_channel)
         print(device)
