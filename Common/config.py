@@ -1,5 +1,5 @@
-num_epochs = 10
-num_workers = 10
+num_epochs = 5
+num_workers = 7
 
 idx_max_length = 50000
 grad_shift = 2 ** 20
@@ -26,3 +26,6 @@ grpc_options = [('grpc.max_send_message_length', -1), ('grpc.max_receive_message
 
 coef = 0.05
 llr = 0.01
+
+blr = 0.2
+gamma = 0.5

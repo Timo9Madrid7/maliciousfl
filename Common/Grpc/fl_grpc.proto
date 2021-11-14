@@ -7,6 +7,20 @@ service FL_Grpc
   rpc UpdateGrad_float(GradRequest_float) returns (GradResponse_float){}
   rpc DataTrans_int32(DataRequest_int32) returns (DataResponse_int32){}
   rpc Update_SignSGD(signSGD_Request) returns (signSGD_Response){}
+  rpc UpdateGrad_Clipping(GradRequest_Clipping) returns (GradResponse_Clipping){}
+}
+
+message GradRequest_Clipping
+{
+  uint32 id = 1;
+  int32 b = 2;
+  repeated float grad_ori = 3;
+}
+
+message GradResponse_Clipping
+{
+  float b = 1;
+  repeated float grad_upd = 2;
 }
 
 message signSGD_Request
