@@ -25,7 +25,7 @@ class ClearDenseClient(WorkerBase):
                                                test_iter=test_iter, config=config, optimizer=optimizer, device=device)
         self.client_id = client_id # client id
         self.grad_stub = grad_stub # communication channel
-        self.clippingBound = 5 # initial clipping bound
+        self.clippingBound = config.initClippingBound
 
     def adaptiveClipping(self, input_gradients):
         '''

@@ -14,7 +14,7 @@ class ClearDenseServer(FlGrpcServer):
         self.port = port
         self.config = config
         self.handler = handler
-        self.clippingBound = 5
+        self.clippingBound = config.initClippingBound
 
     # override UpdateGrad_float for server
     # receive gradients from clients, aggregate, and give them back

@@ -27,5 +27,6 @@ grpc_options = [('grpc.max_send_message_length', -1), ('grpc.max_receive_message
 coef = 0.05
 llr = 0.01
 
+initClippingBound = 1
 blr = 0.2
 gamma = 0.5
