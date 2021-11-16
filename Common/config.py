@@ -1,5 +1,5 @@
 num_epochs = 5
-num_workers = 7
+num_workers = 10
 
 idx_max_length = 50000
 grad_shift = 2 ** 20
@@ -24,9 +24,14 @@ mpc_grad_port = 50004
 
 grpc_options = [('grpc.max_send_message_length', -1), ('grpc.max_receive_message_length', -1)]
 
-coef = 0.05
-llr = 0.01
+# Ditto parameters
+coef = 0.05 # local-global model lambda
+llr = 0.01 # local learning rate
 
-initClippingBound = 1
-blr = 0.2
-gamma = 0.5
+# adaptive clipping parameters
+initClippingBound = 1 # initial clipping bound
+blr = 0.2 # clipping bound learning rate
+gamma = 0.5 # non-clipping ratio {0.1, 0.3, 0.5, 0.7, 0.9}
+b_noise = num_workers/20 # noise standard deviation added to counts
+z_multiplier = 0.01 # {0, 0.01, 0.03, 0.1}
+
