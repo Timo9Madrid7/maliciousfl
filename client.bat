@@ -19,6 +19,9 @@
 @REM python clearflguard_client.py --id 1 | ^
 @REM python clearflguard_client.py --id 0
 
+python clearAdaclipping_client.py --id 9 | ^
+python clearAdaclipping_client.py --id 8 | ^
+python clearAdaclipping_client.py --id 7 | ^
 python clearAdaclipping_client.py --id 6 | ^
 python clearAdaclipping_client.py --id 5 | ^
 python clearAdaclipping_client.py --id 4 | ^
