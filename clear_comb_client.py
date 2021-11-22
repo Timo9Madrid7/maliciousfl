@@ -67,9 +67,9 @@ if __name__ == '__main__':
     args = args_parser() # load setting
     # only cpu used here
     if args.id <1:
-        device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     else:
-        device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     yaml_path = 'Log/log.yaml'
     setup_logging(default_path=yaml_path)

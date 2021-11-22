@@ -1,5 +1,5 @@
 num_epochs = 5
-num_workers = 10
+num_workers = 5
 
 idx_max_length = 50000
 grad_shift = 2 ** 20
@@ -34,5 +34,5 @@ blr = 0.2 # clipping bound learning rate
 gamma = 0.5 # non-clipping ratio {0.1, 0.3, 0.5, 0.7, 0.9}
 # b_noise = num_workers/20 # noise standard deviation added to counts (from server side)
 b_noise = 1.7823 # (from client side) [1.7823 ~ (e,10^-5)DP]
-z_multiplier = 0.1 # {0, 0.01, 0.03, 0.1}
+z_multiplier = 0.01 # {0, 0.01, 0.03, 0.1}
 

@@ -144,7 +144,8 @@ class WorkerBase(metaclass=ABCMeta):
                 self.update() # upload&download the gradients
                 self.upgrade() # push the downloaded gradients into the model
                 train_l_sum += loss
-                train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item()
+                # train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item()
+                train_acc_sum += (y_hat.argmax(dim=1) == y.to(self.device)).sum().item()
                 n += y.shape[0]
                 batch_count += 1
 
