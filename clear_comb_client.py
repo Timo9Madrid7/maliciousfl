@@ -1,4 +1,4 @@
-from Common.Node.workerbase import WorkerBase
+from Common.Node.workerbaseDitto import WorkerBase as WorkerBaseDitto
 from Common.Grpc.fl_grpc_pb2 import GradRequest_Clipping
 import torch
 from torch import nn
@@ -19,25 +19,32 @@ import numpy as np
 import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-class ClearDenseClient(WorkerBase):
+class ClearDenseClient(WorkerBaseDitto):
     def __init__(self, client_id, model, loss_func, train_iter, test_iter, config, optimizer, device, grad_stub):
         super(ClearDenseClient, self).__init__(model=model, loss_func=loss_func, train_iter=train_iter,
                                                test_iter=test_iter, config=config, optimizer=optimizer, device=device)
         self.client_id = client_id # client id
         self.grad_stub = grad_stub # communication channel
-        self.clippingBound = config.initClippingBound
-        self.b_noise = config.b_noise
+        self.clippingBound = config.initClippingBound # initial clipping bound for a client
+        self.b_noise = config.b_noise # indicator noise
 
     def adaptiveClipping(self, input_gradients):
         '''
         To clip the input gradient, if its norm is larger than the setting
         '''
 
-        # --- adaptive noise calculation ---
-        b_noise = self.b_noise
-        grad_noise = (config.z_multiplier**(-2) - (2*b_noise)**(-2))**(-0.5) * self.clippingBound
-        # --- adaptive noise calculation ---
+        if config.gamma == 1: # don't clip
+            return np.array(input_gradients), 1
+        # else: do clipping+noising
 
+        # --- adaptive noise calculation ---
+        b_noise = self.b_noise # deviation for b
+        if config.z_multiplier==0:
+            grad_noise = 0
+        else: 
+            grad_noise = (config.z_multiplier**(-2) - (2*b_noise)**(-2))**(-0.5) * self.clippingBound # deviation for gradients
+        # --- adaptive noise calculation ---
+        
         gradients = np.array(input_gradients)
         norm = np.linalg.norm(gradients)        
         if norm > self.clippingBound:
@@ -67,9 +74,9 @@ if __name__ == '__main__':
     args = args_parser() # load setting
     # only cpu used here
     if args.id <1:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
     else:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
 
     yaml_path = 'Log/log.yaml'
     setup_logging(default_path=yaml_path)
@@ -105,4 +112,4 @@ if __name__ == '__main__':
         )
 
         client.fl_train(times=args.E)
-        client.write_acc_record(fpath="Eva/clear_client_clipping_avg_acc_test_mnist.txt", info="clear_avg_acc_worker_test")
+        client.write_acc_record(fpath="Eva/comb_test.txt", info="clear_round")
