@@ -1,13 +1,16 @@
-from Common.Server.fl_grpc_server_adaclipping import FlGrpcServer
+from numpy.random import gamma
+from Common.Server.fl_grpc_server_adaclipping import FlGrpcServer as FLGrpcClipServer
 from Common.Grpc.fl_grpc_pb2 import GradResponse_Clipping
 from Common.Handler.handler import Handler
 
+import numpy as np
+import hdbscan
+from sklearn.metrics.pairwise import pairwise_distances
+
 import Common.config as config
 
-import numpy as np
 
-
-class ClearDenseServer(FlGrpcServer):
+class ClearDenseServer(FLGrpcClipServer):
     def __init__(self, address, port, config, handler):
         super(ClearDenseServer, self).__init__(config=config)
         self.address = address
@@ -30,6 +33,7 @@ class AvgGradientHandler(Handler):
     def __init__(self, num_workers):
         super(AvgGradientHandler, self).__init__()
         self.num_workers = num_workers
+        self.cluster = hdbscan.HDBSCAN(min_cluster_size=2, metric='precomputed')
 
     def computation(self, data_in, b_in:list, S, gamma, blr):
         # calculating adaptive noise
@@ -38,9 +42,25 @@ class AvgGradientHandler(Handler):
         # average aggregator
         grad_in = np.array(data_in).reshape((self.num_workers, -1))
 
+        # --- HDBScan Start --- #
+        distance_matrix = pairwise_distances(grad_in, metric='cosine')
+        self.cluster.fit(distance_matrix)
+        label = self.cluster.labels_
+        if (label==-1).all():
+            bengin_id = np.arange(self.num_workers).tolist()
+        else:
+            label_class, label_count = np.unique(label, return_counts=True)
+            # label = -1 are discarded, as they cannot be assigned to any clusters
+            label_class, label_count = label_class[1:], label_count[1:]
+            majority = label_class[np.argmax(label_count)]
+            bengin_id = np.where(label==majority)[0].tolist()
+        print("used id:", bengin_id)
+        # --- HDBScan End --- #
+
+
         # add noise to gradients from the server side
         # grad_in += np.random.normal(0, grad_noise, size=grad_in.shape)
-        grad_in = grad_in.mean(axis=0)
+        grad_in = grad_in[bengin_id].mean(axis=0)
 
         # add noise to indicators from the server side
         # b_avg = (np.sum(b_in) + np.random.normal(0,config.b_noise)) / config.num_workers
@@ -56,4 +76,5 @@ if __name__ == "__main__":
 
     clear_server = ClearDenseServer(address=config.server1_address, port=config.port1, config=config,
                                     handler=gradient_handler)
+    print('lambda:', config.coef, 'b_noise:', config.b_noise, 'gamma:', config.gamma, 'z:', config.z_multiplier)
     clear_server.start()
