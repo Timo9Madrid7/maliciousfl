@@ -30,14 +30,20 @@ class AvgGradientHandler(Handler):
     def __init__(self, num_workers):
         super(AvgGradientHandler, self).__init__()
         self.num_workers = num_workers
+        self.last_gradient = None
 
     def computation(self, data_in, b_in:list, S, gamma, blr):
         # calculating adaptive noise
         grad_noise = (config.z_multiplier**(-2) - (2*config.b_noise)**(-2))**(-0.5) * S
         # average aggregator
-        grad_in = np.array(data_in).reshape((self.num_workers, -1))
-        grad_in += np.random.normal(0, grad_noise, size=grad_in.shape)
-        grad_in = grad_in.mean(axis=0)
+        grad_in = np.array(data_in).reshape((self.num_workers, -1)).sum(axis=0)
+        grad_in += np.random.normal(0, grad_noise, size=grad_in.shape) # add noise to the gradient sum
+        grad_in = grad_in / config.num_workers # average
+        if self.last_gradient is None:
+            self.last_gradient = grad_in / config.num_workers
+        else:
+            grad_in = config.betta*self.last_gradient + (1-config.betta)*grad_in
+            self.last_gradient = grad_in
         # new bound computation
         b_avg = (np.sum(b_in) + np.random.normal(0,config.b_noise)) / config.num_workers
         S *= np.exp(-blr*(b_avg-gamma))
