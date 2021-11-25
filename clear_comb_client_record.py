@@ -28,7 +28,6 @@ class ClearDenseClient(WorkerBaseDitto):
         self.grad_stub = grad_stub # communication channel
         self.clippingBound = config.initClippingBound # initial clipping bound for a client
         self.b_noise = config.b_noise # indicator noise
-        self.last_gradient = None
 
     def adaptiveClipping(self, input_gradients):
         '''
@@ -72,8 +71,8 @@ class ClearDenseClient(WorkerBaseDitto):
 
         # infer other people's gradients
         other_gradients = np.array(super().get_gradients())*config.num_workers - gradients
-        write_to_txt("Eva/gradients/gradients_"+"no6_attacker"+'.txt', data=gradients.tolist())
-        write_to_txt("Eva/gradients/gradients_"+"more6_victim"+'.txt', data=other_gradients.tolist())
+        write_to_txt("Eva/gradients/comb_gradients_"+"no6_attacker"+'.txt', data=gradients.tolist())
+        write_to_txt("Eva/gradients/comb_gradients_"+"more6_victim"+'.txt', data=other_gradients.tolist())
 
 
 if __name__ == '__main__':
