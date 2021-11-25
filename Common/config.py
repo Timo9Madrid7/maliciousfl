@@ -1,4 +1,4 @@
-num_epochs = 15
+num_epochs = 20
 num_workers = 2
 
 idx_max_length = 50000
