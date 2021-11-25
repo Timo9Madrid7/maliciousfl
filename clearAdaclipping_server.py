@@ -42,7 +42,7 @@ class AvgGradientHandler(Handler):
         if self.last_gradient is None:
             self.last_gradient = grad_in / config.num_workers
         else:
-            grad_in = config.betta*self.last_gradient + (1-config.betta)*grad_in
+            grad_in = config.beta*self.last_gradient + (1-config.beta)*grad_in
             self.last_gradient = grad_in
         # new bound computation
         b_avg = (np.sum(b_in) + np.random.normal(0,config.b_noise)) / config.num_workers
