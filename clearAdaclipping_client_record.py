@@ -57,10 +57,9 @@ class ClearDenseClient(WorkerBase):
         self.clippingBound = res_grad_upd.result().b
 
         # infer other people's gradients
-        if args.id == 0:
-            other_gradients = np.array(super().get_gradients())*config.num_workers - gradients
-            write_to_txt("Eva/gradients/gradients_"+"no6_attacker"+'.txt', data=gradients.tolist())
-            write_to_txt("Eva/gradients/gradients_"+"more6_victim"+'.txt', data=other_gradients.tolist())
+        other_gradients = np.array(super().get_gradients())*config.num_workers - gradients
+        write_to_txt("Eva/gradients/gradients_"+"no6_attacker"+'.txt', data=gradients.tolist())
+        write_to_txt("Eva/gradients/gradients_"+"more6_victim"+'.txt', data=other_gradients.tolist())
 
 
 if __name__ == '__main__':
