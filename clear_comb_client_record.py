@@ -70,7 +70,7 @@ class ClearDenseClient(WorkerBaseDitto):
         self.clippingBound = res_grad_upd.result().b
 
         # infer other people's gradients
-        other_gradients = np.array(super().get_gradients())*config.num_workers - gradients
+        other_gradients = (np.array(super().get_gradients())*config.num_workers - gradients)/(config.num_workers-1)
         write_to_txt("Eva/gradients/comb_gradients_"+"no6_attacker"+'.txt', data=gradients.tolist())
         write_to_txt("Eva/gradients/comb_gradients_"+"more6_victim"+'.txt', data=other_gradients.tolist())
 
