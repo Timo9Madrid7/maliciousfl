@@ -57,7 +57,8 @@ class AvgGradientHandler(Handler):
         else:
             label_class, label_count = np.unique(label, return_counts=True)
             # label = -1 are discarded, as they cannot be assigned to any clusters
-            label_class, label_count = label_class[1:], label_count[1:]
+            if -1 in label_class:
+                label_class, label_count = label_class[1:], label_count[1:]
             majority = label_class[np.argmax(label_count)]
             bengin_id = np.where(label==majority)[0].tolist()
         print("used id:", bengin_id)
