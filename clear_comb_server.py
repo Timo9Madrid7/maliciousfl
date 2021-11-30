@@ -45,7 +45,7 @@ class AvgGradientHandler(Handler):
         grad_in = np.array(data_in).reshape((self.num_workers, -1))
 
         # --- HDBScan Start --- #
-        distance_matrix = pairwise_distances(grad_in+np.ones(grad_in.shape), metric='cosine')
+        distance_matrix = pairwise_distances(grad_in-grad_in.mean(axis=0), metric='cosine')
         self.cluster.fit(distance_matrix)
         label = self.cluster.labels_
         if (label==-1).all():
