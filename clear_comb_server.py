@@ -1,4 +1,3 @@
-from numpy.random import gamma
 from Common.Server.fl_grpc_server_adaclipping import FlGrpcServer as FLGrpcClipServer
 from Common.Grpc.fl_grpc_pb2 import GradResponse_Clipping
 from Common.Handler.handler import Handler
@@ -8,7 +7,6 @@ import hdbscan
 from sklearn.metrics.pairwise import pairwise_distances
 
 import Common.config as config
-
 
 class ClearDenseServer(FLGrpcClipServer):
     def __init__(self, address, port, config, handler):
@@ -35,11 +33,9 @@ class AvgGradientHandler(Handler):
         self.num_workers = num_workers
         self.cluster = hdbscan.HDBSCAN(
             metric='l2', 
-            min_cluster_size=2, 
-            allow_single_cluster=True, 
-            min_samples=1, 
-            cluster_selection_epsilon=0.1
+            min_cluster_size=2
         )
+        self.npy_num = 0
 
     def computation(self, data_in, b_in:list, S, gamma, blr):
         # calculating adaptive noise
@@ -49,7 +45,7 @@ class AvgGradientHandler(Handler):
         grad_in = np.array(data_in).reshape((self.num_workers, -1))
 
         # --- HDBScan Start --- #
-        distance_matrix = pairwise_distances(grad_in, metric='cosine')
+        distance_matrix = pairwise_distances(grad_in+np.ones(grad_in.shape), metric='cosine')
         self.cluster.fit(distance_matrix)
         label = self.cluster.labels_
         if (label==-1).all():
@@ -61,6 +57,9 @@ class AvgGradientHandler(Handler):
                 label_class, label_count = label_class[1:], label_count[1:]
             majority = label_class[np.argmax(label_count)]
             bengin_id = np.where(label==majority)[0].tolist()
+        if 6 in bengin_id or 7 in bengin_id or 8 in bengin_id or 9 in bengin_id:
+            np.save('../temp/grads_'+str(self.npy_num)+'npy', grad_in)
+            self.npy_num += 1
         print("used id:", bengin_id)
         # --- HDBScan End --- #
 
