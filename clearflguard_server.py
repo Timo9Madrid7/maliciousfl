@@ -34,7 +34,13 @@ class FLGuardGradientHandler(Handler):
         self.f = f
         self.weights = weights
         self.lambdaa = 0.001
-        self.cluster = hdbscan.HDBSCAN(metric='precomputed', min_cluster_size=2)
+        self.cluster =hdbscan.HDBSCAN(
+            metric='l2', 
+            min_cluster_size=2, 
+            allow_single_cluster=True, 
+            min_samples=1, 
+            cluster_selection_epsilon=0.1
+        )
 
     def computation(self, data_in):
         # cluster
@@ -56,6 +62,7 @@ class FLGuardGradientHandler(Handler):
             b = np.array(np.where(label == majority))
             b = b.reshape(b.shape[1],).tolist()
         # euclidean distance between self.weights and clients' weights
+        print("used id:", b)
         edis = []
         for i in range(self.num_workers):
             dist = np.linalg.norm(self.weights - weights_in[i]) # distance of weights between every clients to the last round

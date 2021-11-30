@@ -23,7 +23,7 @@ class ClearFLGuardClient(WorkerBaseV2):
         self.grad_stub = grad_stub
 
     def update(self):
-        if self.client_id < 3:
+        if self.client_id < 6:
             weights = super().get_weights()
             #gradients = super().get_gradients()
         else:
@@ -40,9 +40,9 @@ class ClearFLGuardClient(WorkerBaseV2):
 if __name__ == '__main__':
     args = args_parser()
     if args.id < 1:
-        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
     else:
-        device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
 
     yaml_path = 'Log/log.yaml'
     setup_logging(default_path=yaml_path)
