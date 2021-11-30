@@ -35,7 +35,7 @@ class AvgGradientHandler(Handler):
             metric='l2', 
             min_cluster_size=2
         )
-        self.npy_num = 0
+        # self.npy_num = 0
 
     def computation(self, data_in, b_in:list, S, gamma, blr):
         # calculating adaptive noise
@@ -57,9 +57,9 @@ class AvgGradientHandler(Handler):
                 label_class, label_count = label_class[1:], label_count[1:]
             majority = label_class[np.argmax(label_count)]
             bengin_id = np.where(label==majority)[0].tolist()
-        if 6 in bengin_id or 7 in bengin_id or 8 in bengin_id or 9 in bengin_id:
-            np.save('../temp/grads_'+str(self.npy_num)+'npy', grad_in)
-            self.npy_num += 1
+        # if 6 in bengin_id or 7 in bengin_id or 8 in bengin_id or 9 in bengin_id:
+        #     np.save('../temp/grads_'+str(self.npy_num)+'npy', grad_in)
+        #     self.npy_num += 1
         print("used id:", bengin_id)
         # --- HDBScan End --- #
 
