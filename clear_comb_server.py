@@ -33,7 +33,13 @@ class AvgGradientHandler(Handler):
     def __init__(self, num_workers):
         super(AvgGradientHandler, self).__init__()
         self.num_workers = num_workers
-        self.cluster = hdbscan.HDBSCAN(min_cluster_size=2, metric='precomputed')
+        self.cluster = hdbscan.HDBSCAN(
+            metric='l2', 
+            min_cluster_size=2, 
+            allow_single_cluster=True, 
+            min_samples=1, 
+            cluster_selection_epsilon=0.1
+        )
 
     def computation(self, data_in, b_in:list, S, gamma, blr):
         # calculating adaptive noise
