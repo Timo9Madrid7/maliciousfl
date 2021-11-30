@@ -53,11 +53,11 @@ class ClearDenseClient(WorkerBaseDitto):
             return gradients + np.random.normal(0, grad_noise, size=gradients.shape), 1 + np.random.normal(0,b_noise)
 
     def update(self):
-        if self.client_id < 10:
+        if self.client_id < 6:
             # clipping gradients before upload to the server
              gradients, b = self.adaptiveClipping(super().get_gradients())
         else:
-            # malicious client when id>=10
+            # malicious client when id>= threshold
              gradients, b = np.random.normal(0, 0.1, self._grad_len).tolist(), 1
 
         # upload local gradients and clipping indicator
