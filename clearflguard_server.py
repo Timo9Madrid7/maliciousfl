@@ -63,6 +63,7 @@ class FLGuardGradientHandler(Handler):
             b = b.reshape(b.shape[1],).tolist()
         # euclidean distance between self.weights and clients' weights
         print("used id:", b)
+        np.save('../temp/temp.npy', weights_in)
         edis = []
         for i in range(self.num_workers):
             dist = np.linalg.norm(self.weights - weights_in[i]) # distance of weights between every clients to the last round
