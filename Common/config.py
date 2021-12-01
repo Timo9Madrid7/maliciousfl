@@ -32,8 +32,8 @@ llr = 0.01 # local learning rate
 initClippingBound = 1 # initial clipping bound
 beta = 0.1 # last round gradient weight
 blr = 0.2 # clipping bound learning rate
-gamma = 1 # non-clipping ratio {0.1, 0.3, 0.5, 0.7, 0.9}
+gamma = 0.5 # non-clipping ratio {0.1, 0.3, 0.5, 0.7, 0.9}
 # b_noise = num_workers/20 # noise standard deviation added to counts (from server side)
-b_noise = 0 # (from client side) [1.7823 ~ (e,10^-5)DP]
-z_multiplier = 0 # {0, 0.01, 0.03, 0.1}
+b_noise = 0.5 # (from client side) [1.7823 ~ (e,10^-5)DP]
+z_multiplier = 0.1 # {0, 0.01, 0.03, 0.1}
 
