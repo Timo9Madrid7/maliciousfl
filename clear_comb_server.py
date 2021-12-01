@@ -22,7 +22,7 @@ class ClearDenseServer(FLGrpcClipServer):
     def UpdateGrad_Clipping(self, request, context):
         data_dict = {request.id: request.grad_ori}
         b_list = [request.b]
-        print("have received:", data_dict.keys(), np.round(b_list,4), 'clip_b:', np.round(self.clippingBound,4))
+        print(data_dict.keys(), np.round(b_list,4), 'clip_b:', np.round(self.clippingBound,4))
         rst, self.clippingBound = super().process(dict_data=data_dict, b=b_list, handler=self.handler.computation, clippingBound=self.clippingBound)
         return GradResponse_Clipping(b=self.clippingBound, grad_upd=rst)
 
@@ -33,7 +33,10 @@ class AvgGradientHandler(Handler):
         self.num_workers = num_workers
         self.cluster = hdbscan.HDBSCAN(
             metric='l2', 
-            min_cluster_size=2
+            min_cluster_size=2, # the smallest size grouping that you wish to consider a cluster
+            allow_single_cluster=True, #
+            min_samples=2, # how conservative you want you clustering to be
+            cluster_selection_epsilon=0.1,
         )
         # self.npy_num = 0
 
@@ -58,6 +61,7 @@ class AvgGradientHandler(Handler):
             majority = label_class[np.argmax(label_count)]
             bengin_id = np.where(label==majority)[0].tolist()
         # if 6 in bengin_id or 7 in bengin_id or 8 in bengin_id or 9 in bengin_id:
+        # if len(bengin_id) < 8:
         #     np.save('../temp/grads_'+str(self.npy_num)+'npy', grad_in)
         #     self.npy_num += 1
         print("used id:", bengin_id)

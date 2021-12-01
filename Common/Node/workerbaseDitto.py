@@ -143,11 +143,13 @@ class WorkerBase(metaclass=ABCMeta):
 
                 if self.test_iter != None:
                     # evaluation
+                    global_test_acc = evaluate_accuracy(self.test_iter, self.model) # test by global model
                     test_acc = evaluate_accuracy(self.test_iter, self.local_model) # test by local model
                     self.acc_record += [test_acc]
                   #   print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
                   # % (epoch + 1, train_l_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))
-                    print(test_acc)
+                    print("test acc: local: %.3f | global: %.3f |"
+                    %(test_acc, global_test_acc), time.time() - start)
 
     def write_acc_record(self, fpath, info):
         s = ""
