@@ -29,7 +29,7 @@ coef = 0.05 # local-global model lambda
 llr = 0.01 # local learning rate
 
 # adaptive clipping parameters
-initClippingBound = 1 # initial clipping bound
+initClippingBound = 0.3 # initial clipping bound
 beta = 0.1 # last round gradient weight
 blr = 0.2 # clipping bound learning rate
 gamma = 0.5 # non-clipping ratio {0.1, 0.3, 0.5, 0.7, 0.9}
