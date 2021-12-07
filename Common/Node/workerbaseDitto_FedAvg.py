@@ -32,6 +32,10 @@ class WorkerBase(metaclass=ABCMeta):
         self.local_model = copy.deepcopy(self.model)
         self.local_loss_func = torch.nn.CrossEntropyLoss()
         self.local_optimizer = torch.optim.Adam(self.local_model.parameters(), config.llr)
+        self.local_minlambda = config.minLambda
+        self.local_maxlambda = config.maxLambda
+        self.local_lambdalr = config.lambdalr
+        self.local_lambda = self.local_minlambda
 
         # common parameters:
         self._level_length = [0]
@@ -75,6 +79,12 @@ class WorkerBase(metaclass=ABCMeta):
             diff = torch.tensor(tmp, device=self.device).view(param.data.size())
             param.data = self._weight_prev[idx] + diff
             idx += 1
+
+    def adaptive_ditto(self, global_acc, local_acc):
+        self.local_lambda = min(
+            max(self.local_minlambda, self.local_lambda + self.local_lambdalr * (global_acc - local_acc)), 
+            self.local_maxlambda
+        )
     
     def train_step(self, x, y):
         """ one mini_batch training step """
@@ -96,7 +106,7 @@ class WorkerBase(metaclass=ABCMeta):
         loss_local.backward()
         layer = 0
         for param in self.local_model.parameters():
-            param.grad += self.config.coef * (param - self._weight_prev[layer])
+            param.grad += self.local_lambda * (param - self._weight_prev[layer])
             layer += 1
         self.local_optimizer.step()
 
@@ -112,9 +122,10 @@ class WorkerBase(metaclass=ABCMeta):
                     test_acc = evaluate_accuracy(self.test_iter, self.local_model)
                     self.acc_record += [test_acc]
                     print(
-                        "epoch: %d | test_acc: local: %.3f | global: %.3f |"
-                        %(epoch, test_acc, global_test_acc), time.time() - start
+                        "epoch: %d | test_acc: local: %.3f | global: %.3f | Ditto: %.3f | time: %.2f"
+                        %(epoch, test_acc, global_test_acc, self.local_lambda, time.time() - start)
                     )
+                    self.adaptive_ditto(global_test_acc, test_acc)
             self._weight_cur = self.get_weights()
             self.calculate_weights_difference()
             self.update()
