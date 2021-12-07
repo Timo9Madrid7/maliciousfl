@@ -58,7 +58,7 @@ class ClearDenseClient(WorkerBaseDitto):
              gradients, b = self.adaptiveClipping(super().get_gradients())
         else:
             # malicious client when id>= threshold
-             gradients, b = np.random.normal(0, 0.1, self._grad_len).tolist(), 1
+             gradients, b = np.random.normal(0, 0.1, len(super().get_gradients())).tolist(), 1
 
         # upload local gradients and clipping indicator
         res_grad_upd = self.grad_stub.UpdateGrad_Clipping.future(GradRequest_Clipping(id=self.client_id, b=b, grad_ori=gradients))

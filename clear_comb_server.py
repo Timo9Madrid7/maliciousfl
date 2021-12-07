@@ -80,6 +80,10 @@ class AvgGradientHandler(Handler):
 
         return grad_in.tolist(), S
 
+        # --- TEST --- #
+        grad_in = np.array(data_in).reshape((self.num_workers, -1)).mean(axis=0)
+        return grad_in.tolist(), 1
+
 
 if __name__ == "__main__":
     gradient_handler = AvgGradientHandler(num_workers=config.num_workers)
