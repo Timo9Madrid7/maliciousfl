@@ -27,6 +27,7 @@ grpc_options = [('grpc.max_send_message_length', -1), ('grpc.max_receive_message
 # Ditto parameters
 coef = 0.05 # local-global model lambda
 llr = 0.01 # local learning rate
+lambda_lr = 0.01 # adaptive lambda learning rate
 
 # adaptive clipping parameters
 initClippingBound = 0.3 # initial clipping bound

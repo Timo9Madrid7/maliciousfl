@@ -132,3 +132,4 @@ dmypy.json
 *.bmp
 *.gif
 *.csv
+Model/LeNet
