@@ -34,7 +34,6 @@ class WorkerBase(metaclass=ABCMeta):
         self.local_optimizer = torch.optim.Adam(self.local_model.parameters(), config.llr)
         self.local_minlambda = config.minLambda
         self.local_maxlambda = config.maxLambda
-        self.local_lambdalr = config.lambdalr
         self.local_lambda = self.local_minlambda
 
         # common parameters:
@@ -82,7 +81,7 @@ class WorkerBase(metaclass=ABCMeta):
 
     def adaptive_ditto(self, global_acc, local_acc):
         self.local_lambda = min(
-            max(self.local_minlambda, self.local_lambda + self.local_lambdalr * (global_acc - local_acc)), 
+            max(self.local_minlambda, self.local_lambda + (global_acc - local_acc - self.local_minlambda)), 
             self.local_maxlambda
         )
     
