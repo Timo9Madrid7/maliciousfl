@@ -133,3 +133,4 @@ dmypy.json
 *.gif
 *.csv
 Model/LeNet
+.vscode/settings.json
