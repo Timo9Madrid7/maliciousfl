@@ -33,5 +33,5 @@ def poison_data_fmnist(path=None):
 
 
 if __name__ == '__main__':
-    path = ''
-    poison_data_fmnist(path=path)
+    path = './Data/MNIST'
+    poison_data_mnist(path=path)
