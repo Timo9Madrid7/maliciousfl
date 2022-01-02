@@ -125,7 +125,7 @@ class WorkerBase(metaclass=ABCMeta):
             slot = np.random.randint(0,len(self.train_iter),1)
             G_loss = 0
             for X, y in self.train_iter:
-                poision = 0
+                poison = 0
                 if epoch < 4:
                     D_loss = self.train_step(X,y)
 
@@ -149,11 +149,11 @@ class WorkerBase(metaclass=ABCMeta):
                     if y_valid_hat[0] > y_valid_hat[1:].mean():
                         X = torch.cat((X, x_gen))
                         y = torch.cat((y, y_gen))
-                        poision = 1
+                        poison = 1
                     elif np.sum(y_valid_hat[0] < y_valid_hat[1:]) >= 4:
                         X = torch.cat((X, x_gen))
                         y = torch.cat((y, torch.zeros(len(x_gen), dtype=torch.long).to(self.device)))
-                        poision = 2
+                        poison = 2
 
                     D_loss = self.train_step(X, y)
                     
@@ -164,7 +164,7 @@ class WorkerBase(metaclass=ABCMeta):
             self.update()
             self.upgrade()
 
-            print("epoch: %d | G_loss: %.3f | D_loss: %.3f | P?: %d"%(epoch, G_loss, D_loss, poision))
+            print("epoch: %d | G_loss: %.3f | D_loss: %.3f | P?: %d"%(epoch, G_loss, D_loss, poison))
             torch.save(self.G_model.state_dict(), './Model/InferModelG')
             torch.save(self.D_model.state_dict(), './Model/InferModelD')
 
