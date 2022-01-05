@@ -7,7 +7,7 @@ import Common.config as config
 
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import ResNet, BasicBlock
-from Common.Utils.data_loader import load_data_fmnist, load_data_cifar10, load_data_mnist
+from Common.Utils.data_loader import load_data_mnist, load_data_posioned_mnist
 from Common.Utils.set_log import setup_logging
 from Common.Utils.options import args_parser
 import grpc
@@ -84,10 +84,16 @@ if __name__ == '__main__':
     model = LeNet().to(device)
     #model = ResNet(BasicBlock, [3,3,3]).to(device)
     model.load_state_dict(torch.load(PATH))
-    if args.id == 0:
-        train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path)
+    if args.id == 0 or args.id == 1:
+        if args.id in config.flipping_clients:
+            train_iter, test_iter = load_data_posioned_mnist(id=args.id, batch = args.batch_size, path = args.path)
+        else:
+            train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path)
     else:
-        train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path), None
+        if args.id in config.flipping_clients:
+            train_iter, test_iter = load_data_posioned_mnist(id=args.id, batch = args.batch_size, path = args.path), None
+        else:
+            train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path), None
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     loss_func = nn.CrossEntropyLoss()
 
