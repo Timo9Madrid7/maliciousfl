@@ -56,8 +56,8 @@ class WorkerBase(metaclass=ABCMeta):
         """ getting weights/layer"""
         weights = []
         for param in self.model.parameters():
-            weights.append(param)
-        return weights
+            weights.append(param.data)
+        return copy.deepcopy(weights)
 
     def calculate_weights_difference(self):
         """ calculating the epoch weights difference which will be uploaded to the server"""
