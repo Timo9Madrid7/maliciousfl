@@ -84,7 +84,7 @@ if __name__ == '__main__':
     model = LeNet().to(device)
     #model = ResNet(BasicBlock, [3,3,3]).to(device)
     model.load_state_dict(torch.load(PATH))
-    if args.id == 0 or args.id == 1:
+    if args.id == 0:
         if args.id in config.flipping_clients:
             train_iter, test_iter = load_data_posioned_mnist(id=args.id, batch = args.batch_size, path = args.path)
         else:
