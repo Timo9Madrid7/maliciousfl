@@ -1,4 +1,4 @@
-num_epochs = 5
+num_epochs = 15
 num_workers = 10
 
 idx_max_length = 50000
@@ -41,4 +41,4 @@ b_noise = 0.5 # (from client side) [1.7823 ~ (e,10^-5)DP]
 z_multiplier = 0.1 # {0, 0.01, 0.03, 0.1}
 
 # label flipping parameters
-flipping_clients = [1,3,5,7]
+flipping_clients = []
