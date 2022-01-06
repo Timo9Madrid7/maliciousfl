@@ -132,8 +132,8 @@ class WorkerBase(metaclass=ABCMeta):
                 
                 if batch_count in slot:
                     # remove all belonging to target class (pretended inference)
-                    X = X[torch.where(y!=0)]
-                    y = y[torch.where(y!=0)]
+                    X = X[torch.where(y!=self.target)]
+                    y = y[torch.where(y!=self.target)]
 
                     # Tanh transform
                     trans = torch.nn.Tanh()
