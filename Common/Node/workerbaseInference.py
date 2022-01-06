@@ -1,7 +1,6 @@
 from copy import deepcopy
 import logging
 import numpy as np
-from numpy.random import poisson
 import torch
 import time
 import copy
