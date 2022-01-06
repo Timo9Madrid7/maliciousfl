@@ -7,6 +7,7 @@ import hdbscan
 from sklearn.metrics.pairwise import pairwise_distances
 
 import Common.config as config
+from Common.Utils.gradients_recorder import detect_GAN_raw, save_distance_matrix
 
 class ClearDenseServer(FLGrpcClipServer):
     def __init__(self, address, port, config, handler):
@@ -46,11 +47,11 @@ class AvgGradientHandler(Handler):
 
         # average aggregator
         grad_in = np.array(data_in).reshape((self.num_workers, -1))
+        # detect_GAN_raw("Eva/gradients/GANDetection/raw_data.txt", grad_in)
 
         # --- HDBScan Start --- #
         distance_matrix = pairwise_distances(grad_in-grad_in.mean(axis=0), metric='cosine')
-        # with open('Eva/distance_matrix/FedAVG_flipping.txt', 'a') as f:
-        #     np.savetxt(f, distance_matrix, delimiter=',')
+        # save_distance_matrix("Eva/distance_matrix/FedAVG_flipping.txt", distance_matrix)
         self.cluster.fit(distance_matrix)
         label = self.cluster.labels_
         if (label==-1).all():
