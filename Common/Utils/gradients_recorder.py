@@ -15,3 +15,7 @@ def detect_GAN_raw(path:str, data: np.ndarray, mode='a'):
     with open(path, mode) as f:
         np.savetxt(f, last_fl_params)
         f.write('\n')
+
+def save_distance_matrix(path:str, data: np.ndarray, mode='a'):
+    with open(path, mode) as f:
+        np.savetxt(f, data)
