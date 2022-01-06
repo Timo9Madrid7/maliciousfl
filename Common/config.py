@@ -41,4 +41,4 @@ b_noise = 0.5 # (from client side) [1.7823 ~ (e,10^-5)DP]
 z_multiplier = 0.1 # {0, 0.01, 0.03, 0.1}
 
 # label flipping parameters
-flipping_clients = []
+flipping_clients = [2,4,6,8]
