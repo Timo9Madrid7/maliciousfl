@@ -26,7 +26,6 @@ class ClearDenseClient(WorkerBaseDitto):
         self.client_id = client_id # client id
         self.grad_stub = grad_stub # communication channel
         self.clippingBound = config.initClippingBound # initial clipping bound for a client
-        self.b_noise = config.b_noise # indicator noise
 
     def adaptiveClipping(self, input_gradients):
         '''
@@ -37,20 +36,24 @@ class ClearDenseClient(WorkerBaseDitto):
             return np.array(input_gradients), 1
         # else: do clipping+noising
 
+        gradients = np.array(input_gradients)
+
         # --- adaptive noise calculation ---
-        b_noise = self.b_noise # deviation for b
         if config.z_multiplier==0:
             grad_noise = 0
+            b_noise = 0
         else: 
-            grad_noise = (config.z_multiplier**(-2) - (2*b_noise)**(-2))**(-0.5) * self.clippingBound # deviation for gradients
+            std_b_noise = config.b_noise
+            std_g_noise = config.z_multiplier * self.clippingBound # deviation for gradients
+            b_noise = np.random.normal(0, std_b_noise)
+            grad_noise = np.random.normal(0, std_g_noise, size=gradients.shape)
         # --- adaptive noise calculation ---
-        
-        gradients = np.array(input_gradients)
+           
         norm = np.linalg.norm(gradients)        
         if norm > self.clippingBound:
-            return gradients * self.clippingBound/np.linalg.norm(gradients) + np.random.normal(0, grad_noise, size=gradients.shape), 0 + np.random.normal(0,b_noise)
+            return gradients * self.clippingBound/np.linalg.norm(gradients) + grad_noise, 0 + b_noise
         else:
-            return gradients + np.random.normal(0, grad_noise, size=gradients.shape), 1 + np.random.normal(0,b_noise)
+            return gradients + grad_noise, 1 + b_noise
 
     def update(self):
         if self.client_id < 10:

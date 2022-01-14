@@ -1,4 +1,4 @@
-num_epochs = 20
+num_epochs = 50
 num_workers = 10
 
 idx_max_length = 50000
@@ -32,13 +32,13 @@ minLambda = 0.05
 maxLambda = 1.00
 
 # adaptive clipping parameters
-initClippingBound = 20 # initial clipping bound
+initClippingBound = 10 # initial clipping bound
 beta = 0.1 # last round gradient weight
 blr = 0.5 # clipping bound learning rate
-gamma = 1 # non-clipping ratio {0.1, 0.3, 0.5, 0.7, 0.9}
+gamma = 0.5 # non-clipping ratio {0.1, 0.3, 0.5, 0.7, 0.9}
 # b_noise = num_workers/20 # noise standard deviation added to counts (from server side)
 b_noise = 0.5 # (from client side) [1.7823 ~ (e,10^-5)DP]
-z_multiplier = 0.01 # {0, 0.01, 0.03, 0.1}
+z_multiplier = 0.1 # {0, 0.01, 0.03, 0.1}
 
 # label flipping parameters
 flipping_clients = []
