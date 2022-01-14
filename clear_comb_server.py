@@ -78,8 +78,9 @@ class AvgGradientHandler(Handler):
         # add noise to indicators from the server side
         # b_avg = (np.sum(b_in) + np.random.normal(0,config.b_noise)) / config.num_workers
 
+        b_in = list(map(lambda x: max(0,x), b_in))
         b_avg = np.sum(b_in) / config.num_workers
-        S *= np.exp(-blr*(b_avg-gamma))
+        S *= np.exp(-blr*(min(b_avg,1)-gamma))
 
         return grad_in.tolist(), S
 

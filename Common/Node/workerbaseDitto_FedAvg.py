@@ -118,7 +118,7 @@ class WorkerBase(metaclass=ABCMeta):
             for X, y in self.train_iter:
                 batch_count += 1
                 self.train_step(X, y)
-                if self.test_iter != None:
+                if self.test_iter != None and (batch_count%10 == 0 or batch_count == len(self.train_iter)):
                     global_test_acc = evaluate_accuracy(self.test_iter, self.model)
                     test_acc = evaluate_accuracy(self.test_iter, self.local_model)
                     self.acc_record += [test_acc]
