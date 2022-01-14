@@ -1,13 +1,16 @@
 import logging
 from logging import config
+import random
 import torch
 import time
 import copy
+import itertools
 from abc import ABCMeta, abstractmethod
 
 from torch.optim import optimizer
 
 from Common.Utils.evaluate import evaluate_accuracy
+from Common.Utils.data_loader import load_data_noniid_mnist
 #uploading gradients
 logger = logging.getLogger('client.workerbase')
 
@@ -18,7 +21,13 @@ class WorkerBase(metaclass=ABCMeta):
     def __init__(self, model, loss_func, train_iter, test_iter, config, device, optimizer):
         # input data:
         self.train_iter = train_iter
+        assert self.train_iter == None
         self.test_iter = test_iter
+
+        # training client
+        self.clients_index = []
+        for i in itertools.combinations(range(0,10),7):
+            self.clients_index.append(''.join(str(j) for j in i))
     
         # global model parameters:
         self.model = model
@@ -112,19 +121,24 @@ class WorkerBase(metaclass=ABCMeta):
     def fl_train(self, times):
         self.acc_record = [0]
         for epoch in range(self.config.num_epochs):
+            
+            _client = self.clients_index[random.randint(0, 119)]
+            self.train_iter = load_data_noniid_mnist(_client, batch=128)
+
             self._weight_prev, batch_count, start = self.get_weights(), 0, time.time()
             if self.test_iter != None:
                 return_acc = evaluate_accuracy(self.test_iter, self.model)
             for X, y in self.train_iter:
                 batch_count += 1
                 self.train_step(X, y)
-                if self.test_iter != None and (batch_count%10 == 0 or batch_count == len(self.train_iter)):
+                # if self.test_iter != None and (batch_count%10 == 0 or batch_count == len(self.train_iter)):
+                if self.test_iter != None and batch_count == len(self.train_iter):
                     global_test_acc = evaluate_accuracy(self.test_iter, self.model)
                     test_acc = evaluate_accuracy(self.test_iter, self.local_model)
                     self.acc_record += [test_acc]
                     print(
-                        "epoch: %d | test_acc: local: %.3f | global: [%.3f, %.3f] | Ditto: %.3f | time: %.2f"
-                        %(epoch, test_acc, global_test_acc, return_acc, self.local_lambda, time.time() - start)
+                        "epoch: %d | test_acc: local: %.3f | global: [%.3f, %.3f] | Ditto: %.3f | time: %.2f | client: %s"
+                        %(epoch, test_acc, global_test_acc, return_acc, self.local_lambda, time.time() - start, _client)
                     )
                     self.adaptive_ditto(return_acc, test_acc)
             self._weight_cur = self.get_weights()

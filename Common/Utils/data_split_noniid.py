@@ -17,7 +17,7 @@ def load_trans_mnist(root="./Data/MNIST"):
 
 mnist_train = load_trans_mnist()
 
-def create_noniid_clients(data=mnist_train, number_classes_per_client=3, number_samples_per_class=200, save_path="./Data/MNIST/noniid/client_"):
+def create_noniid_clients(data=mnist_train, number_classes_per_client=7, number_samples_per_class=300, save_path="./Data/MNIST/noniid/client_"):
     collection = [[] for _ in range(10)]
     for sample in mnist_train:
         collection[sample[1]].append(sample[0])
@@ -34,17 +34,17 @@ def create_noniid_clients(data=mnist_train, number_classes_per_client=3, number_
         torch.save(temp, path)
   
 if __name__ == "__main__":
-    # create_noniid_clients()
+    create_noniid_clients()
     
-    test_client = torch.load("./Data/MNIST/noniid/client_678.pt")
-    print(len(test_client), len(test_client[0]))
-    # plt.imshow(test_client[0][0].reshape(28,28))
-    print(test_client[0][1])
-    # plt.imshow(test_client[200][0].reshape(28,28))   
-    print(test_client[200][1])                                  
-    # plt.imshow(test_client[400][0].reshape(28,28))
-    print(test_client[400][1])
-    plt.show()
+    # test_client = torch.load("./Data/MNIST/noniid/client_678.pt")
+    # print(len(test_client), len(test_client[0]))
+    # # plt.imshow(test_client[0][0].reshape(28,28))
+    # print(test_client[0][1])
+    # # plt.imshow(test_client[200][0].reshape(28,28))   
+    # print(test_client[200][1])                                  
+    # # plt.imshow(test_client[400][0].reshape(28,28))
+    # print(test_client[400][1])
+    # plt.show()
 
 
 

@@ -109,7 +109,8 @@ if __name__ == '__main__':
             client_id=args.id, 
             model=model, 
             loss_func=loss_func, 
-            train_iter=train_iter,
+            # train_iter=train_iter,
+            train_iter = None,
             test_iter=test_iter, 
             config=config, 
             optimizer=optimizer, 
@@ -118,4 +119,4 @@ if __name__ == '__main__':
         )
 
         client.fl_train(times=args.E)
-        client.write_acc_record(fpath="Eva/comb_test.txt", info="clear_round")
+        # client.write_acc_record(fpath="Eva/comb_test.txt", info="clear_round")

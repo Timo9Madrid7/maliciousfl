@@ -34,6 +34,11 @@ def load_data_posioned_mnist(id, batch=None, path=None):
 
     return train_iter
 
+def load_data_noniid_mnist(client_index, batch=128, path="./Data/MNIST/noniid"):
+    data = torch.load(path+'/'+'client_'+client_index+'.pt')
+    train_iter = torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
+    return train_iter
+
 def load_data_usps(id, batch=None, path=None):
     data = torch.load(path+'/'+'usps_train_'+str(id)+'_.pt')
     train_iter = torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
