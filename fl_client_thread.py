@@ -46,7 +46,7 @@ class ClearDenseClient(WorkerBaseDitto):
             std_b_noise = config.b_noise
             std_g_noise = config.z_multiplier * self.clippingBound # deviation for gradients
             b_noise = np.random.normal(0, std_b_noise)
-            grad_noise = np.random.normal(0, std_g_noise, size=gradients.shape)
+            grad_noise = np.random.normal(0, std_g_noise, size=gradients.shape)/config.num_workers
         # --- adaptive noise calculation ---
            
         norm = np.linalg.norm(gradients)        
