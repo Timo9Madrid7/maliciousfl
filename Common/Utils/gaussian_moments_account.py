@@ -309,3 +309,13 @@ def get_privacy_spent(log_moments, target_eps=None, target_delta=None):
         return (target_eps, _compute_delta(log_moments, target_eps))
     else:
         return (_compute_eps(log_moments, target_delta), target_delta)
+
+def acc_track_delta(parameters, eps=5, max_lmbd=32):
+    lmbds = range(1, max_lmbd + 1)
+    log_moments = []
+    for lmbd in lmbds:
+        log_moment = 0
+        for q, sigma, T in parameters:
+            log_moment += compute_log_moment(q, sigma, T, lmbd)
+        log_moments.append((lmbd, log_moment))
+    return get_privacy_spent(log_moments, target_eps=eps)

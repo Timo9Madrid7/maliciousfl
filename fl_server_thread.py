@@ -8,6 +8,7 @@ from sklearn.metrics.pairwise import pairwise_distances
 
 import Common.config as config
 from Common.Utils.gradients_recorder import detect_GAN_raw, save_distance_matrix
+from Common.Utils.gaussian_moments_account import acc_track_delta
 
 class ClearDenseServer(FLGrpcClipServer):
     def __init__(self, address, port, config, handler):
@@ -40,6 +41,8 @@ class AvgGradientHandler(Handler):
             cluster_selection_epsilon=0.1,
         )
         # self.npy_num = 0
+        self.total_number = 120 # the total number of clients
+        self.acc_params = []
 
     def computation(self, data_in, b_in:list, S, gamma, blr):
         # calculating adaptive noise
@@ -67,16 +70,17 @@ class AvgGradientHandler(Handler):
         # if len(bengin_id) < 8:
         #     np.save('../temp/grads_'+str(self.npy_num)+'npy', grad_in)
         #     self.npy_num += 1
-        print("used id:", bengin_id)
         # --- HDBScan End --- #
+        noise_compensatory = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.z_multiplier*S, size=grad_in.shape[1])
+        grad_in = grad_in[bengin_id].sum(axis=0) + noise_compensatory
+        grad_in /= len(bengin_id)
 
+        # --- Gaussian Moments Accountant Start ---
+        self.acc_params.append((len(bengin_id)/self.total_number, config.z_multiplier, 1))
+        cur_eps, cur_delta = acc_track_delta(self.acc_params, eps=config.epsilon)
+        # --- Gaussian Moments Accountant End ---
 
-        # add noise to gradients from the server side
-        # grad_in += np.random.normal(0, grad_noise, size=grad_in.shape)
-        grad_in = grad_in[bengin_id].mean(axis=0)
-
-        # add noise to indicators from the server side
-        # b_avg = (np.sum(b_in) + np.random.normal(0,config.b_noise)) / config.num_workers
+        print("epsilon: %.2f | delta: %.6f | used id: "%(cur_eps, cur_delta), bengin_id)
 
         b_in = list(map(lambda x: max(0,x), b_in))
         b_avg = np.sum(b_in) / config.num_workers
