@@ -41,7 +41,7 @@ b_noise = 1 # (from client side) [1.7823 ~ (e,10^-5)DP]
 z_multiplier = 1 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters
-_non_iid = True
+_noniid = True
 _dpoff = False
 _dprecord, _dptest, _dpclient = False, False, "0123456" #_dptest: whether _dpclient is involved in the training
 epsilon = 5
