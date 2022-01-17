@@ -122,8 +122,9 @@ class WorkerBase(metaclass=ABCMeta):
         self.acc_record = [0]
         for epoch in range(self.config.num_epochs):
             
-            _client = self.clients_index[random.randint(0, 119)]
-            self.train_iter = load_data_noniid_mnist(_client, batch=128)
+            if self.train_iter == None:
+                _client = self.clients_index[random.randint(0, 119)]
+                self.train_iter = load_data_noniid_mnist(_client, batch=128)
 
             self._weight_prev, batch_count, start = self.get_weights(), 0, time.time()
             if self.test_iter != None:
