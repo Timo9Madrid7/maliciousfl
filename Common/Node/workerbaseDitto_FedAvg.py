@@ -11,7 +11,7 @@ from torch.optim import optimizer
 
 from Common.Utils.evaluate import evaluate_accuracy
 from Common.Utils.data_loader import load_data_noniid_mnist, load_data_dpclient_mnist
-from Common.config import _dptest, _dpclient, _noniid, _dprecord
+from Common.config import _dpin, _dpclient, _noniid, _dprecord
 #uploading gradients
 logger = logging.getLogger('client.workerbase')
 
@@ -131,7 +131,7 @@ class WorkerBase(metaclass=ABCMeta):
             _client = ''
             if _noniid:
                 _client = self.clients_index[random.randint(0, 119)]
-                if _dptest and _client == _dpclient:
+                if _dpin and _client == _dpclient:
                     self.train_iter = load_data_dpclient_mnist(_client)
                 else:
                     self.train_iter = load_data_noniid_mnist(_client, batch=128)
