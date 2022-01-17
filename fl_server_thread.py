@@ -71,19 +71,23 @@ class AvgGradientHandler(Handler):
         #     np.save('../temp/grads_'+str(self.npy_num)+'npy', grad_in)
         #     self.npy_num += 1
         # --- HDBScan End --- #
-        noise_compensatory = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.z_multiplier*S, size=grad_in.shape[1])
-        grad_in = grad_in[bengin_id].sum(axis=0) + noise_compensatory
-        grad_in /= len(bengin_id)
+        if config._dpoff:
+            noise_compensatory_grad = 0
+            noise_compensatory_b = 0
+            print("used id: ", bengin_id)
+        else:
+            noise_compensatory_grad = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.z_multiplier*S, size=grad_in.shape[1])
+            noise_compensatory_b = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.b_noise)
+            # --- Gaussian Moments Accountant Start ---
+            self.acc_params.append((len(bengin_id)/self.total_number, config.z_multiplier, 1))
+            cur_eps, cur_delta = acc_track_delta(self.acc_params, eps=config.epsilon)
+            # --- Gaussian Moments Accountant End ---
+            print("epsilon: %.2f | delta: %.6f | used id: "%(cur_eps, cur_delta), bengin_id)
 
-        # --- Gaussian Moments Accountant Start ---
-        self.acc_params.append((len(bengin_id)/self.total_number, config.z_multiplier, 1))
-        cur_eps, cur_delta = acc_track_delta(self.acc_params, eps=config.epsilon)
-        # --- Gaussian Moments Accountant End ---
-
-        print("epsilon: %.2f | delta: %.6f | used id: "%(cur_eps, cur_delta), bengin_id)
+        grad_in = (grad_in[bengin_id].sum(axis=0) + noise_compensatory_grad) / len(bengin_id)
 
         b_in = list(map(lambda x: max(0,x), b_in))
-        b_avg = np.sum(b_in) / config.num_workers
+        b_avg = (np.sum(b_in) + noise_compensatory_b) / config.num_workers
         S *= np.exp(-blr*(min(b_avg,1)-gamma))
 
         return grad_in.tolist(), S
@@ -98,5 +102,5 @@ if __name__ == "__main__":
 
     clear_server = ClearDenseServer(address=config.server1_address, port=config.port1, config=config,
                                     handler=gradient_handler)
-    print('lambda:', config.coef, 'b_noise:', config.b_noise, 'gamma:', config.gamma, 'z:', config.z_multiplier)
+    print('lambda:', config.coef, 'dpoff:', config._dpoff, 'b_noise:', config.b_noise, 'gamma:', config.gamma, 'z:', config.z_multiplier)
     clear_server.start()

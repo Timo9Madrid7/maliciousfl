@@ -32,7 +32,7 @@ class ClearDenseClient(WorkerBaseDitto):
         To clip the input gradient, if its norm is larger than the setting
         '''
 
-        if config.gamma == 1: # don't clip
+        if config.gamma == 1 or config._dpoff: # don't clip
             return np.array(input_gradients), 1
         # else: do clipping+noising
 
@@ -45,7 +45,7 @@ class ClearDenseClient(WorkerBaseDitto):
         else: 
             std_b_noise = config.b_noise
             std_g_noise = config.z_multiplier * self.clippingBound # deviation for gradients
-            b_noise = np.random.normal(0, std_b_noise)
+            b_noise = np.random.normal(0, std_b_noise)/config.num_workers
             grad_noise = np.random.normal(0, std_g_noise, size=gradients.shape)/config.num_workers
         # --- adaptive noise calculation ---
            
