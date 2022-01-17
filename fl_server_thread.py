@@ -103,5 +103,5 @@ if __name__ == "__main__":
     clear_server = ClearDenseServer(address=config.server1_address, port=config.port1, config=config,
                                     handler=gradient_handler)
     print('lambda:', config.coef, '| dpoff:', config._dpoff, '| b_noise:', config.b_noise, 
-        '| gamma:', config.gamma, '| z:', config.z_multiplier, '| dp_test:', config._dpin)
+        '| gamma:', config.gamma, '| z:', config.z_multiplier, '| dp_in:', config._dpin)
     clear_server.start()
