@@ -10,7 +10,8 @@ from abc import ABCMeta, abstractmethod
 from torch.optim import optimizer
 
 from Common.Utils.evaluate import evaluate_accuracy
-from Common.Utils.data_loader import load_data_noniid_mnist
+from Common.Utils.data_loader import load_data_noniid_mnist, load_data_dpclient_mnist
+from Common.config import _dptest, _dpclient, _noniid, _dprecord
 #uploading gradients
 logger = logging.getLogger('client.workerbase')
 
@@ -21,13 +22,18 @@ class WorkerBase(metaclass=ABCMeta):
     def __init__(self, model, loss_func, train_iter, test_iter, config, device, optimizer):
         # input data:
         self.train_iter = train_iter
-        assert self.train_iter == None
+        if _noniid:
+            assert self.train_iter == None
         self.test_iter = test_iter
 
         # training client
         self.clients_index = []
         for i in itertools.combinations(range(0,10),7):
             self.clients_index.append(''.join(str(j) for j in i))
+
+        # dp test acc record
+        self.acc_dp = []
+        self.dpclient_iter = load_data_dpclient_mnist(_dpclient)
     
         # global model parameters:
         self.model = model
@@ -122,13 +128,18 @@ class WorkerBase(metaclass=ABCMeta):
         self.acc_record = [0]
         for epoch in range(self.config.num_epochs):
             
-            if self.train_iter == None:
+            _client = ''
+            if _noniid:
                 _client = self.clients_index[random.randint(0, 119)]
-                self.train_iter = load_data_noniid_mnist(_client, batch=128)
+                if _dptest and _client == _dpclient:
+                    self.train_iter = load_data_dpclient_mnist(_client)
+                else:
+                    self.train_iter = load_data_noniid_mnist(_client, batch=128)
 
             self._weight_prev, batch_count, start = self.get_weights(), 0, time.time()
             if self.test_iter != None:
                 return_acc = evaluate_accuracy(self.test_iter, self.model)
+                self.acc_dp.append(evaluate_accuracy(self.dpclient_iter, self.model))
             for X, y in self.train_iter:
                 batch_count += 1
                 self.train_step(X, y)
@@ -146,6 +157,10 @@ class WorkerBase(metaclass=ABCMeta):
             self.calculate_weights_difference()
             self.update()
             self.upgrade()
+        
+        if _dprecord and self.acc_dp != []:
+            self.write_dp_acc_record()
+
 
     def write_acc_record(self, fpath, info):
         s = ""
@@ -156,6 +171,10 @@ class WorkerBase(metaclass=ABCMeta):
             f.write(info + '\n')
             f.write(s)
             f.write("" * 20)
+
+    def write_dp_acc_record(self):
+        import numpy as np
+        np.savetxt("./Eva/dp_test_acc/dpclient_"+_dpclient+".txt", self.acc_dp)
 
     @abstractmethod
     def update(self):
