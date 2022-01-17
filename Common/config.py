@@ -42,6 +42,7 @@ z_multiplier = 1 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters
 _dpoff = False
+_noniid = True
 epsilon = 5
 
 # label flipping parameters
