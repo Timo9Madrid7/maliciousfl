@@ -108,12 +108,15 @@ if __name__ == '__main__':
         grad_stub = FL_GrpcStub(grad_channel)
         print(device)
 
+        if config._noniid:
+            train_iter = None
+
         client = ClearDenseClient(
             client_id=args.id, 
             model=model, 
             loss_func=loss_func, 
             # train_iter=train_iter,
-            train_iter = None,
+            train_iter = train_iter,
             test_iter=test_iter, 
             config=config, 
             optimizer=optimizer, 
