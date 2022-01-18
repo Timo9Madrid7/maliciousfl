@@ -1,7 +1,9 @@
 import logging
 from logging import config
 import random
+from select import select
 import torch
+import numpy as np
 import time
 import copy
 import itertools
@@ -10,8 +12,8 @@ from abc import ABCMeta, abstractmethod
 from torch.optim import optimizer
 
 from Common.Utils.evaluate import evaluate_accuracy
-from Common.Utils.data_loader import load_data_noniid_mnist, load_data_dpclient_mnist
-from Common.config import _dpin, _dpclient, _noniid, _dprecord
+from Common.Utils.data_loader import load_data_dittoEval_mnist, load_data_noniid_mnist, load_data_dpclient_mnist, load_data_mnist
+from Common.config import _dpin, _dpclient, _dprecord
 #uploading gradients
 logger = logging.getLogger('client.workerbase')
 
@@ -19,12 +21,16 @@ logger = logging.getLogger('client.workerbase')
 This is the worker for sharing the local gradients.
 '''
 class WorkerBase(metaclass=ABCMeta):
-    def __init__(self, model, loss_func, train_iter, test_iter, config, device, optimizer):
+    def __init__(self, thread_id, model, loss_func, config, device, optimizer):
         # input data:
-        self.train_iter = train_iter
-        if _noniid:
-            assert self.train_iter == None
-        self.test_iter = test_iter
+        self.thread_id = thread_id
+        self.train_iter = None
+        if thread_id == 0:
+            _, self.test_iter = load_data_mnist(thread_id, batch=128, path="./Data/MNIST/")
+        self.local_test_iter = None
+        self.client = ""
+
+        self.number_clients = int(config.num_workers/config.num_threads)
 
         # training client
         self.clients_index = []
@@ -42,6 +48,7 @@ class WorkerBase(metaclass=ABCMeta):
         self._gradients = None          # not really gradients, but weights difference in one epoch
         self._weight_prev = None        # weights before this epoch
         self._weight_cur = None         # weights after this epoch
+        self._gradients_list = []
         
         # local model parameters:
         self.local_model = copy.deepcopy(self.model)
@@ -60,9 +67,6 @@ class WorkerBase(metaclass=ABCMeta):
         self.config = config
         self.device = device
         
-        # records:
-        self.acc_record = [0]
-
     def get_gradients(self):
         """ getting gradients """
         return self._gradients
@@ -124,59 +128,74 @@ class WorkerBase(metaclass=ABCMeta):
             layer += 1
         self.local_optimizer.step()
 
-    def fl_train(self, times):
-        self.acc_record = [0]
-        for epoch in range(self.config.num_epochs):
-            
-            _client = ''
-            if _noniid:
-                _client = self.clients_index[random.randint(0, 119)]
-                if _dpin and _client == _dpclient:
-                    self.train_iter = load_data_dpclient_mnist(_client)
-                else:
-                    self.train_iter = load_data_noniid_mnist(_client, batch=128)
+    def select_client(self):
+        id = random.randint(0, self.config.total_number_clients-1)
+        self.local_model.load_state_dict(torch.load("./Model/Local_Models/LeNet_"+str(id))) 
+        _client = self.clients_index[id]
+        if _dpin and _client == _dpclient:
+            self.train_iter = load_data_dpclient_mnist(_client)
+        else:
+            self.train_iter = load_data_noniid_mnist(_client)
+        self.local_test_iter = load_data_dittoEval_mnist(_client)
+    
+        return _client, id
 
-            self._weight_prev, batch_count, start = self.get_weights(), 0, time.time()
-            if self.test_iter != None:
-                return_acc = evaluate_accuracy(self.test_iter, self.model)
-                self.acc_dp.append(evaluate_accuracy(self.dpclient_iter, self.model))
-            for X, y in self.train_iter:
-                batch_count += 1
-                self.train_step(X, y)
-                # if self.test_iter != None and (batch_count%10 == 0 or batch_count == len(self.train_iter)):
-                if self.test_iter != None and batch_count == len(self.train_iter):
-                    global_test_acc = evaluate_accuracy(self.test_iter, self.model)
-                    test_acc = evaluate_accuracy(self.test_iter, self.local_model)
-                    self.acc_record += [test_acc]
-                    print(
-                        "epoch: %d | test_acc: local: %.3f | global: [%.3f, %.3f] | Ditto: %.3f | time: %.2f | client: %s"
-                        %(epoch, test_acc, global_test_acc, return_acc, self.local_lambda, time.time() - start, _client)
-                    )
-                    self.adaptive_ditto(return_acc, test_acc)
-            self._weight_cur = self.get_weights()
-            self.calculate_weights_difference()
-            self.update()
-            self.upgrade()
-        
+    def upgrade_local(self, id):
+        torch.save(self.local_model.state_dict(), "./Model/Local_Models/LeNet_"+str(id))
+
+    def fl_train(self):
+        for epoch in range(self.config.num_epochs): # number of total epochs 
+            for client_id in range(self.number_clients): # number of client for this epoch on this thread
+
+                # randomly pick up a client from non iid data set
+                # if _dpin is true, client [may] select that dpclient
+                self.client, model_id = self.select_client()
+                
+                # retrieve weights from the global model
+                self._weight_prev, batch_count, start = self.get_weights(), 0, time.time()
+
+                if self.thread_id == 0: # thread_0 responds for recording
+                    self.acc_dp.append(evaluate_accuracy(self.dpclient_iter, self.model))
+
+                # ditto reference accuracy
+                return_acc = evaluate_accuracy(self.local_test_iter, self.model)
+                lambda_list = [self.local_lambda]
+
+                # global & local models training
+                for X, y in self.train_iter:
+                    batch_count += 1
+                    # training
+                    self.train_step(X, y)
+                    # evaluation
+                    local_test_acc = evaluate_accuracy(self.local_test_iter, self.local_model)
+                    # adjust the local-global distance
+                    self.adaptive_ditto(return_acc, local_test_acc)
+                    # record the lambda
+                    lambda_list.append(self.local_lambda)
+
+                    # verbose at last, thread_0 responds for recording
+                    if batch_count == len(self.train_iter) and self.thread_id == 0:
+                        test_acc = evaluate_accuracy(self.test_iter, self.model)
+                        print(
+                            "epoch: %d | local_acc: %.3f | global_acc: %.3f | Ditto: %.3f | time: %.2f | client: %s"
+                            %(epoch, local_test_acc, test_acc, np.mean(lambda_list), time.time() - start, self.client)
+                        )
+                
+                # global model update
+                self._weight_cur = self.get_weights()
+                self.calculate_weights_difference()
+                self.update(client_id=client_id)
+                self.upgrade()
+                # local model update
+                self.upgrade_local(id=model_id)
+            
         if _dprecord and self.acc_dp != []:
             self.write_dp_acc_record()
 
-
-    def write_acc_record(self, fpath, info):
-        s = ""
-        for i in self.acc_record:
-            s += str(i) + " "
-        s += '\n'
-        with open(fpath, 'a+') as f:
-            f.write(info + '\n')
-            f.write(s)
-            f.write("" * 20)
-
     def write_dp_acc_record(self):
-        import numpy as np
         np.savetxt("./Eva/dp_test_acc/dpclient_"+_dpclient+".txt", self.acc_dp)
 
     @abstractmethod
-    def update(self):
+    def update(self, client_id):
         pass
 
