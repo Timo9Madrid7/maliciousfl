@@ -41,7 +41,7 @@ class AvgGradientHandler(Handler):
             cluster_selection_epsilon=0.1,
         )
         # self.npy_num = 0
-        self.total_number = 120 # the total number of clients
+        self.total_number = config.total_number_clients # the total number of clients
         self.acc_params = []
 
     def computation(self, data_in, b_in:list, S, gamma, blr):
@@ -84,11 +84,12 @@ class AvgGradientHandler(Handler):
             # --- Gaussian Moments Accountant End ---
             print("epsilon: %.2f | delta: %.6f | used id: "%(cur_eps, cur_delta), bengin_id)
 
-        grad_in = (grad_in[bengin_id].sum(axis=0) + noise_compensatory_grad) / len(bengin_id)
+            # adaptive clipping
+            b_in = list(map(lambda x: max(0,x), b_in))
+            b_avg = (np.sum(b_in) + noise_compensatory_b) / config.num_workers
+            S *= np.exp(-blr*(min(b_avg,1)-gamma))
 
-        b_in = list(map(lambda x: max(0,x), b_in))
-        b_avg = (np.sum(b_in) + noise_compensatory_b) / config.num_workers
-        S *= np.exp(-blr*(min(b_avg,1)-gamma))
+        grad_in = (grad_in[bengin_id].sum(axis=0) + noise_compensatory_grad) / len(bengin_id)
 
         return grad_in.tolist(), S
 

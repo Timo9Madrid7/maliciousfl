@@ -20,10 +20,8 @@ import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 class ClearDenseClient(WorkerBaseDitto):
-    def __init__(self, client_id, model, loss_func, train_iter, test_iter, config, optimizer, device, grad_stub):
-        super(ClearDenseClient, self).__init__(model=model, loss_func=loss_func, train_iter=train_iter,
-                                               test_iter=test_iter, config=config, optimizer=optimizer, device=device)
-        self.client_id = client_id # client id
+    def __init__(self, thread_id, model, loss_func, config, optimizer, device, grad_stub):
+        super(ClearDenseClient, self).__init__(thread_id = thread_id, model=model, loss_func=loss_func, config=config, optimizer=optimizer, device=device)
         self.grad_stub = grad_stub # communication channel
         self.clippingBound = config.initClippingBound # initial clipping bound for a client
 
@@ -55,72 +53,53 @@ class ClearDenseClient(WorkerBaseDitto):
         else:
             return gradients + grad_noise, 1 + b_noise
 
-    def update(self):
-        if self.client_id < 10:
-            # clipping gradients before upload to the server
-             gradients, b = self.adaptiveClipping(super().get_gradients())
-        else:
-            # malicious client when id>= threshold
-             gradients, b = np.random.normal(0, 1, len(super().get_gradients())).tolist(), 1
+    def update(self, client_id):
+        # clipping gradients before upload to the server
+        gradients, b = self.adaptiveClipping(super().get_gradients())
 
         # upload local gradients and clipping indicator
-        res_grad_upd = self.grad_stub.UpdateGrad_Clipping.future(GradRequest_Clipping(id=self.client_id, b=b, grad_ori=gradients))
+        res_grad_upd = self.grad_stub.UpdateGrad_Clipping.future(GradRequest_Clipping(id=self.thread_id, b=b, grad_ori=gradients))
 
-        # receive global gradients
-        super().set_gradients(gradients=res_grad_upd.result().grad_upd)
-        # update the clipping bound for the next round
-        self.clippingBound = res_grad_upd.result().b
+        if client_id + 1 == int(config.num_workers/config.num_threads):
+            # receive global gradients
+            super().set_gradients(gradients=res_grad_upd.result().grad_upd)
+            # update the clipping bound for the next round
+            self.clippingBound = res_grad_upd.result().b
 
 
 if __name__ == '__main__':
 
     args = args_parser() # load setting
+
     # only cpu used here
-    if args.id <1:
-        device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
-    else:
-        device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
 
     yaml_path = 'Log/log.yaml'
     setup_logging(default_path=yaml_path)
+
+    # model setttings
     PATH = './Model/LeNet'
     model = LeNet().to(device)
-    #model = ResNet(BasicBlock, [3,3,3]).to(device)
     model.load_state_dict(torch.load(PATH))
-    if args.id == 0:
-        if args.id in config.flipping_clients:
-            train_iter, test_iter = load_data_posioned_mnist(id=args.id, batch = args.batch_size, path = args.path)
-        else:
-            train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path)
-    else:
-        if args.id in config.flipping_clients:
-            train_iter, test_iter = load_data_posioned_mnist(id=args.id, batch = args.batch_size, path = args.path), None
-        else:
-            train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path), None
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     loss_func = nn.CrossEntropyLoss()
 
+    # server settings
     server_grad = config.server1_address + ":" + str(config.port1)
 
     with grpc.insecure_channel(server_grad, options=config.grpc_options) as grad_channel:
         print("thread [%d]-%s: connect success!"%(args.id, device))
         grad_stub = FL_GrpcStub(grad_channel)
 
-        if config._noniid:
-            train_iter = None
-
         client = ClearDenseClient(
-            client_id=args.id, 
+            thread_id=args.id, 
             model=model, 
-            loss_func=loss_func, 
-            # train_iter=train_iter,
-            train_iter = train_iter,
-            test_iter=test_iter, 
+            loss_func=loss_func,  
             config=config, 
             optimizer=optimizer, 
             device=device, 
             grad_stub=grad_stub
         )
 
-        client.fl_train(times=args.E)
+        client.fl_train()
         # client.write_acc_record(fpath="Eva/comb_test.txt", info="clear_round")

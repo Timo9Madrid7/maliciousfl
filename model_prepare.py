@@ -12,6 +12,10 @@ PATH = './Model/LeNet'
 model = LeNet()
 #model = ResNet(BasicBlock, [3,3,3])
 torch.save(model.state_dict(), PATH)
+
+for i in range(120):
+    torch.save(model.state_dict(), "./Model/Local_Models/LeNet_"+str(i))
+
 model_load = LeNet()
 #model_load = models.resnet18()
 #model_load = ResNet(BasicBlock, [3,3,3])
