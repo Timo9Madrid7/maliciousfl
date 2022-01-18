@@ -30,6 +30,7 @@ llr = 0.01 # local learning rate
 # adaptive Ditto parameters
 minLambda = 0.05
 maxLambda = 1.00
+adaptiveDitto = False
 
 # adaptive clipping parameters
 initClippingBound = 10 # initial clipping bound
