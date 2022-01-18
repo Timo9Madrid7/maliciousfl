@@ -1,4 +1,6 @@
 num_epochs = 51
+total_number_clients = 120
+num_threads = 10
 num_workers = 10
 
 idx_max_length = 50000
@@ -26,11 +28,10 @@ grpc_options = [('grpc.max_send_message_length', -1), ('grpc.max_receive_message
 
 # Ditto parameters
 coef = 0.05 # local-global model lambda
-llr = 0.01 # local learning rate
+llr = 0.1 # local learning rate
 # adaptive Ditto parameters
 minLambda = 0.05
-maxLambda = 1.00
-adaptiveDitto = False
+maxLambda = 2.00
 
 # adaptive clipping parameters
 initClippingBound = 10 # initial clipping bound
@@ -42,9 +43,8 @@ b_noise = 1 # (from client side) [1.7823 ~ (e,10^-5)DP]
 z_multiplier = 1 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters
-_noniid = True
 _dpoff = False
-_dprecord, _dpin, _dpclient = True, False, "0123456" #_dpin: whether _dpclient is involved in the training
+_dprecord, _dpin, _dpclient = False, False, "0123456" #_dpin: whether _dpclient is involved in the training
 epsilon = 5
 
 # label flipping parameters
