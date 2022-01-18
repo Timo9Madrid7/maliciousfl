@@ -74,9 +74,9 @@ def create_noniid_eval_clients(number_classes_per_client=7, number_samples_per_c
         torch.save(temp, path)
   
 if __name__ == "__main__":
-    create_noniid_clients(number_samples_per_class=500)
+    create_noniid_clients()
     # create_noniid_eval_clients()
-    create_dptest_client(client_classes="0123456", number_samples_per_class=500)
+    create_dptest_client(client_classes="0123456")
     
     # test_client = torch.load("./Data/MNIST/noniid/client_678.pt")
     # print(len(test_client), len(test_client[0]))
