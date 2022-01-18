@@ -1,4 +1,4 @@
-from Common.Server.fl_grpc_server import FlGrpcServer
+from Common.Server._old.fl_grpc_server import FlGrpcServer
 from Common.Grpc.fl_grpc_pb2 import signSGD_Response
 from Common.Handler.handler import Handler
 from Common.Utils.edcode import encode, decode

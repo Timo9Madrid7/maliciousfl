@@ -1,4 +1,4 @@
-from Common.Server.fl_grpc_server import FlGrpcServer
+from Common.Server._old.fl_grpc_server import FlGrpcServer
 from Common.Grpc.fl_grpc_pb2 import GradResponse_float
 from Common.Handler.handler import Handler
 
@@ -33,6 +33,7 @@ class AvgGradientHandler(Handler):
         # average aggregator
         grad_in = np.array(data_in).reshape((self.num_workers, -1)).mean(axis=0)
         return grad_in.tolist()
+
 
 if __name__ == "__main__":
     gradient_handler = AvgGradientHandler(num_workers=config.num_workers)

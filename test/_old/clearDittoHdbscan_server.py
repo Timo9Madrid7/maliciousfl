@@ -1,5 +1,5 @@
 from scipy.spatial.kdtree import distance_matrix
-from Common.Server.fl_grpc_server import FlGrpcServer
+from Common.Server._old.fl_grpc_server import FlGrpcServer
 from Common.Grpc.fl_grpc_pb2 import GradResponse_float
 from Common.Handler.handler import Handler
 import hdbscan
