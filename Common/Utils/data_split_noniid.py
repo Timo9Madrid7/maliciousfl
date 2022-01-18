@@ -55,11 +55,28 @@ def create_dptest_client(client_classes="0123456", number_samples_per_class=300,
     random.shuffle(temp)
     path = save_path + client_classes + ".pt"
     torch.save(temp, path)
-    
+
+def create_noniid_eval_clients(number_classes_per_client=7, number_samples_per_class=50, save_path="./Data/MNIST/noniid/client_eval_"):
+    data = load_test_mnist()
+    collection = [[] for _ in range(10)]
+    for sample in data:
+        collection[sample[1]].append(sample[0])
+        
+    clients_classes = itertools.combinations(range(0,10), number_classes_per_client)
+    for client_classes in clients_classes:
+        temp = []
+        path = save_path
+        for client_class in client_classes:
+            temp += list(zip(random.sample(collection[client_class], number_samples_per_class), [client_class]*number_samples_per_class))
+            path += str(client_class)
+        assert len(temp) == number_samples_per_class * number_classes_per_client
+        path += ".pt"
+        torch.save(temp, path)
   
 if __name__ == "__main__":
     # create_noniid_clients()
-    create_dptest_client(client_classes="0123456")
+    create_noniid_eval_clients()
+    # create_dptest_client(client_classes="0123456")
     
     # test_client = torch.load("./Data/MNIST/noniid/client_678.pt")
     # print(len(test_client), len(test_client[0]))
