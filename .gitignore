@@ -132,5 +132,5 @@ dmypy.json
 *.bmp
 *.gif
 *.csv
-Model/
+Model/local_Models/
 .vscode/settings.json
