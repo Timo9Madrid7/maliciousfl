@@ -12,7 +12,6 @@ from abc import ABCMeta, abstractmethod
 from torch.optim import optimizer
 
 from Common.Utils.evaluate import evaluate_accuracy
-from Common.Utils.data_loader import load_data_dittoEval_mnist, load_data_noniid_mnist, load_data_dpclient_mnist, load_data_mnist
 from Common.config import _dpin, _dpclient, _dprecord
 #uploading gradients
 logger = logging.getLogger('client.workerbase')
@@ -21,13 +20,13 @@ logger = logging.getLogger('client.workerbase')
 This is the worker for sharing the local gradients.
 '''
 class WorkerBase(metaclass=ABCMeta):
-    def __init__(self, thread_id, model, loss_func, config, device, optimizer):
+    def __init__(self, thread_id, test_iter, train_iter_loader, dittoEval_loader, different_client_loader, model, loss_func, config, device, optimizer):
         # input data:
         self.thread_id = thread_id
-        self.train_iter = None
-        if thread_id == 0:
-            _, self.test_iter = load_data_mnist(thread_id, batch=128, path="./Data/MNIST/")
-        self.local_test_iter = None
+        self.train_iter_loader = train_iter_loader
+        self.test_iter = test_iter
+        self.dittoEval_loader = dittoEval_loader
+        self.different_client_loader = different_client_loader
         self.client = ""
 
         self.number_clients = int(config.num_workers/config.num_threads)
@@ -39,7 +38,7 @@ class WorkerBase(metaclass=ABCMeta):
 
         # dp test acc record
         self.acc_dp = []
-        self.dpclient_iter = load_data_dpclient_mnist(_dpclient)
+        self.dpclient_iter = self.different_client_loader(_dpclient)
     
         # global model parameters:
         self.model = model
@@ -133,10 +132,10 @@ class WorkerBase(metaclass=ABCMeta):
         self.local_model.load_state_dict(torch.load("./Model/Local_Models/LeNet_"+str(id))) 
         _client = self.clients_index[id]
         if _dpin and _client == _dpclient:
-            self.train_iter = load_data_dpclient_mnist(_client)
+            self.train_iter = self.different_client_loader(_client)
         else:
-            self.train_iter = load_data_noniid_mnist(_client)
-        self.local_test_iter = load_data_dittoEval_mnist(_client)
+            self.train_iter = self.train_iter_loader(_client)
+        self.local_test_iter = self.dittoEval_loader(_client)
     
         return _client, id
 

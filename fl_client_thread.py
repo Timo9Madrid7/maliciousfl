@@ -7,7 +7,7 @@ import Common.config as config
 
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import ResNet, BasicBlock
-from Common.Utils.data_loader import load_data_mnist, load_data_posioned_mnist
+from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, load_data_dittoEval_mnist, load_data_dpclient_mnist
 from Common.Utils.set_log import setup_logging
 from Common.Utils.options import args_parser
 import grpc
@@ -20,8 +20,10 @@ import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 class ClearDenseClient(WorkerBaseDitto):
-    def __init__(self, thread_id, model, loss_func, config, optimizer, device, grad_stub):
-        super(ClearDenseClient, self).__init__(thread_id = thread_id, model=model, loss_func=loss_func, config=config, optimizer=optimizer, device=device)
+    def __init__(self, thread_id, test_iter, train_iter_loader, dittoEval_loader, different_client_loader, model, loss_func, config, optimizer, device, grad_stub):
+        super(ClearDenseClient, self).__init__(thread_id = thread_id, 
+        test_iter=test_iter, train_iter_loader=train_iter_loader, dittoEval_loader=dittoEval_loader, different_client_loader=different_client_loader,
+        model=model, loss_func=loss_func, config=config, optimizer=optimizer, device=device)
         self.grad_stub = grad_stub # communication channel
         self.clippingBound = config.initClippingBound # initial clipping bound for a client
 
@@ -87,12 +89,21 @@ if __name__ == '__main__':
     # server settings
     server_grad = config.server1_address + ":" + str(config.port1)
 
+    # client settings
+    if args.id == 0:
+        _, test_iter = load_data_mnist(args.id, batch=128, path="./Data/MNIST/")
+    
+
     with grpc.insecure_channel(server_grad, options=config.grpc_options) as grad_channel:
         print("thread [%d]-%s: connect success!"%(args.id, device))
         grad_stub = FL_GrpcStub(grad_channel)
 
         client = ClearDenseClient(
             thread_id=args.id, 
+            test_iter = test_iter,
+            train_iter_loader = load_data_noniid_mnist,
+            dittoEval_loader = load_data_dittoEval_mnist,
+            different_client_loader = load_data_dpclient_mnist,
             model=model, 
             loss_func=loss_func,  
             config=config, 
