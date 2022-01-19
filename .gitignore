@@ -134,3 +134,4 @@ dmypy.json
 *.csv
 Model/local_Models/
 .vscode/settings.json
+Model/LeNet
