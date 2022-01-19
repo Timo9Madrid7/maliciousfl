@@ -42,8 +42,9 @@ b_noise = 1 # (from client side) [1.7823 ~ (e,10^-5)DP]
 z_multiplier = 1 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters
+_noniid = False
 _dpoff = False
-_dprecord, _dpin, _dpclient = False, False, "0123456" #_dpin: whether _dpclient is involved in the training
+_dprecord, _dpin, _dpclient = False, False, "0" #_dpin: whether _dpclient is involved in the training
 epsilon = 5
 
 # label flipping parameters

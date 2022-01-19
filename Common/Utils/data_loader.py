@@ -34,17 +34,29 @@ def load_data_posioned_mnist(id, batch=None, path=None):
 
     return train_iter
 
-def load_data_noniid_mnist(client_index, batch=128, path="./Data/MNIST/noniid"):
+def load_data_noniid_mnist(client_index, batch=128, noniid=True):
+    if noniid:
+        path = "./Data/MNIST/noniid"
+    else:
+        path = "./Data/MNIST/iid"
     data = torch.load(path+'/'+'client_'+client_index+'.pt')
     train_iter = torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
     return train_iter
 
-def load_data_dpclient_mnist(client_index, batch=128, path="./Data/MNIST/noniid/test/dpclient_"):
+def load_data_dpclient_mnist(client_index, batch=128, noniid=True):
+    if noniid:
+        path="./Data/MNIST/noniid/test/dpclient_"
+    else:
+        path="./Data/MNIST/iid/test/dpclient_"
     data = torch.load(path+client_index+".pt")
     dp_iter = torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
     return dp_iter
 
-def load_data_dittoEval_mnist(client_index, batch=128, path="./Data/MNIST/noniid"):
+def load_data_dittoEval_mnist(client_index, batch=128, noniid=True):
+    if noniid:
+        path="./Data/MNIST/noniid"
+    else:
+        path="./Data/MNIST/iid"
     data = torch.load(path+'/'+'client_eval_'+client_index+'.pt')
     return torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
 

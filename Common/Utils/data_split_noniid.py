@@ -41,6 +41,19 @@ def create_noniid_clients(number_classes_per_client=7, number_samples_per_class=
         path += ".pt"
         torch.save(temp, path)
         
+def create_iid_clients(number_clients=120, number_samples_per_class=300, save_path="./Data/MNIST/iid/client_"):
+    data = load_trian_mnist()
+    collection = [[] for _ in range(10)]
+    for sample in data:
+        collection[sample[1]].append(sample[0])
+    
+    for i in range(number_clients):
+        temp = []
+        path = save_path + str(i) + ".pt"
+        for per_class in range(10):
+            temp += list(zip(random.sample(collection[per_class], number_samples_per_class), [per_class]*number_samples_per_class))
+        torch.save(temp, path)
+        
 def create_dptest_client(client_classes="0123456", number_samples_per_class=300, save_path="./Data/MNIST/noniid/test/dpclient_"):
     data = load_test_mnist()
     collection = [[] for _ in range(10)]
@@ -72,11 +85,29 @@ def create_noniid_eval_clients(number_classes_per_client=7, number_samples_per_c
         assert len(temp) == number_samples_per_class * number_classes_per_client
         path += ".pt"
         torch.save(temp, path)
+        
+def create_iid_eval_clients(number_clients=120, number_samples_per_class=50, save_path="./Data/MNIST/iid/client_eval_"):
+    data = load_test_mnist()
+    collection = [[] for _ in range(10)]
+    for sample in data:
+        collection[sample[1]].append(sample[0])
+    
+    for i in range(number_clients):
+        temp = []
+        path = save_path + str(i) + ".pt"
+        for per_class in range(10):
+            temp += list(zip(random.sample(collection[per_class], number_samples_per_class), [per_class]*number_samples_per_class))
+        torch.save(temp, path)
   
 if __name__ == "__main__":
     create_noniid_clients()
-    # create_noniid_eval_clients()
+    create_noniid_eval_clients()
     create_dptest_client(client_classes="0123456")
+    
+    create_iid_clients()
+    create_iid_eval_clients()
+    create_dptest_client(client_classes="0123456789", save_path="./Data/MNIST/iid/test/dpclient_")
+    
     
     # test_client = torch.load("./Data/MNIST/noniid/client_678.pt")
     # print(len(test_client), len(test_client[0]))

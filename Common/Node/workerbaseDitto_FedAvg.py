@@ -12,7 +12,7 @@ from abc import ABCMeta, abstractmethod
 from torch.optim import optimizer
 
 from Common.Utils.evaluate import evaluate_accuracy
-from Common.config import _dpin, _dpclient, _dprecord
+from Common.config import _dpin, _dpclient, _dprecord, _noniid
 #uploading gradients
 logger = logging.getLogger('client.workerbase')
 
@@ -32,13 +32,16 @@ class WorkerBase(metaclass=ABCMeta):
         self.client = ""
 
         # training client
-        self.clients_index = []
-        for i in itertools.combinations(range(0,10),7):
-            self.clients_index.append(''.join(str(j) for j in i))
+        if _noniid:
+            self.clients_index = []
+            for i in itertools.combinations(range(0,10),7):
+                self.clients_index.append(''.join(str(j) for j in i))
+        else:
+            self.clients_index = list(str(i) for i in range(config.total_number_clients))
 
         # dp test acc record
         self.acc_dp = []
-        self.dpclient_iter = self.different_client_loader(_dpclient)
+        self.dpclient_iter = self.different_client_loader(_dpclient, noniid=_noniid)
     
         # global model parameters:
         self.model = model
@@ -132,10 +135,10 @@ class WorkerBase(metaclass=ABCMeta):
         self.local_model.load_state_dict(torch.load("./Model/Local_Models/LeNet_"+str(id))) 
         _client = self.clients_index[id]
         if _dpin and _client == _dpclient:
-            self.train_iter = self.different_client_loader(_client)
+            self.train_iter = self.different_client_loader(_client, noniid=_noniid)
         else:
-            self.train_iter = self.train_iter_loader(_client)
-        self.local_test_iter = self.dittoEval_loader(_client)
+            self.train_iter = self.train_iter_loader(_client, noniid=_noniid)
+        self.local_test_iter = self.dittoEval_loader(_client, noniid=_noniid)
     
         return _client, id
 
