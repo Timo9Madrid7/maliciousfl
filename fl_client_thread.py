@@ -55,18 +55,17 @@ class ClearDenseClient(WorkerBaseDitto):
         else:
             return gradients + grad_noise, 1 + b_noise
 
-    def update(self, client_id):
+    def update(self, model_id):
         # clipping gradients before upload to the server
         gradients, b = self.adaptiveClipping(super().get_gradients())
 
         # upload local gradients and clipping indicator
         res_grad_upd = self.grad_stub.UpdateGrad_Clipping.future(GradRequest_Clipping(id=self.thread_id, b=b, grad_ori=gradients))
 
-        if client_id + 1 == int(config.num_workers/config.num_threads):
-            # receive global gradients
-            super().set_gradients(gradients=res_grad_upd.result().grad_upd)
-            # update the clipping bound for the next round
-            self.clippingBound = res_grad_upd.result().b
+        # receive global gradients
+        super().set_gradients(gradients=res_grad_upd.result().grad_upd)
+        # update the clipping bound for the next round
+        self.clippingBound = res_grad_upd.result().b
 
 
 if __name__ == '__main__':

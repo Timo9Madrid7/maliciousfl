@@ -31,8 +31,6 @@ class WorkerBase(metaclass=ABCMeta):
         self.different_client_loader = different_client_loader
         self.client = ""
 
-        self.number_clients = int(config.num_workers/config.num_threads)
-
         # training client
         self.clients_index = []
         for i in itertools.combinations(range(0,10),7):
@@ -146,49 +144,47 @@ class WorkerBase(metaclass=ABCMeta):
 
     def fl_train(self):
         for epoch in range(self.config.num_epochs): # number of total epochs 
-            for client_id in range(self.number_clients): # number of client for this epoch on this thread
+            # randomly pick up a client from non iid data set
+            # if _dpin is true, client [may] select that dpclient
+            self.client, model_id = self.select_client()
+            
+            # retrieve weights from the global model
+            self._weight_prev, batch_count, start = self.get_weights(), 0, time.time()
 
-                # randomly pick up a client from non iid data set
-                # if _dpin is true, client [may] select that dpclient
-                self.client, model_id = self.select_client()
-                
-                # retrieve weights from the global model
-                self._weight_prev, batch_count, start = self.get_weights(), 0, time.time()
+            if self.thread_id == 0: # thread_0 responds for recording
+                self.acc_dp.append(evaluate_accuracy(self.dpclient_iter, self.model))
 
-                if self.thread_id == 0: # thread_0 responds for recording
-                    self.acc_dp.append(evaluate_accuracy(self.dpclient_iter, self.model))
+            # ditto reference accuracy
+            return_acc = evaluate_accuracy(self.local_test_iter, self.model)
+            lambda_list = [self.local_lambda]
 
-                # ditto reference accuracy
-                return_acc = evaluate_accuracy(self.local_test_iter, self.model)
-                lambda_list = [self.local_lambda]
+            # global & local models training
+            for X, y in self.train_iter:
+                batch_count += 1
+                # training
+                self.train_step(X, y)
+                # evaluation
+                local_test_acc = evaluate_accuracy(self.local_test_iter, self.local_model)
+                # adjust the local-global distance
+                self.adaptive_ditto(return_acc, local_test_acc)
+                # record the lambda
+                lambda_list.append(self.local_lambda)
 
-                # global & local models training
-                for X, y in self.train_iter:
-                    batch_count += 1
-                    # training
-                    self.train_step(X, y)
-                    # evaluation
-                    local_test_acc = evaluate_accuracy(self.local_test_iter, self.local_model)
-                    # adjust the local-global distance
-                    self.adaptive_ditto(return_acc, local_test_acc)
-                    # record the lambda
-                    lambda_list.append(self.local_lambda)
-
-                    # verbose at last, thread_0 responds for recording
-                    if batch_count == len(self.train_iter) and self.thread_id == 0:
-                        test_acc = evaluate_accuracy(self.test_iter, self.model)
-                        print(
-                            "epoch: %d | local_acc: %.3f | global_acc: %.3f | Ditto: %.3f | time: %.2f | client: %s"
-                            %(epoch, local_test_acc, test_acc, np.mean(lambda_list), time.time() - start, self.client)
-                        )
-                
-                # global model update
-                self._weight_cur = self.get_weights()
-                self.calculate_weights_difference()
-                self.update(client_id=client_id)
-                self.upgrade()
-                # local model update
-                self.upgrade_local(id=model_id)
+                # verbose at last, thread_0 responds for recording
+                if batch_count == len(self.train_iter) and self.thread_id == 0:
+                    test_acc = evaluate_accuracy(self.test_iter, self.model)
+                    print(
+                        "epoch: %d | local_acc: %.3f | global_acc: %.3f | Ditto: %.3f | time: %.2f | client: %s"
+                        %(epoch, local_test_acc, test_acc, np.mean(lambda_list), time.time() - start, self.client)
+                    )
+            
+            # global model update
+            self._weight_cur = self.get_weights()
+            self.calculate_weights_difference()
+            self.update(model_id=model_id)
+            self.upgrade()
+            # local model update
+            self.upgrade_local(id=model_id)
             
         if _dprecord and self.acc_dp != []:
             self.write_dp_acc_record()
@@ -197,6 +193,6 @@ class WorkerBase(metaclass=ABCMeta):
         np.savetxt("./Eva/dp_test_acc/dpclient_"+_dpclient+".txt", self.acc_dp)
 
     @abstractmethod
-    def update(self, client_id):
+    def update(self, model_id):
         pass
 
