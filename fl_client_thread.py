@@ -92,6 +92,8 @@ if __name__ == '__main__':
     # client settings
     if args.id == 0:
         _, test_iter = load_data_mnist(args.id, batch=128, path="./Data/MNIST/")
+    else: 
+        test_iter = None
     
 
     with grpc.insecure_channel(server_grad, options=config.grpc_options) as grad_channel:

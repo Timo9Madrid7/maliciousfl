@@ -1,4 +1,4 @@
-num_epochs = 51
+num_epochs = 21
 total_number_clients = 120
 num_threads = 10
 num_workers = 10
@@ -43,7 +43,7 @@ b_noise = 1 # (from client side) [1.7823 ~ (e,10^-5)DP]
 z_multiplier = 1 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters
-_dpoff = False
+_dpoff = True
 _dprecord, _dpin, _dpclient = False, False, "0123456" #_dpin: whether _dpclient is involved in the training
 epsilon = 5
 

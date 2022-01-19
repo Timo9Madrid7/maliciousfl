@@ -24,8 +24,10 @@ class WorkerBase(metaclass=ABCMeta):
         # input data:
         self.thread_id = thread_id
         self.train_iter_loader = train_iter_loader
+        self.train_iter = None
         self.test_iter = test_iter
         self.dittoEval_loader = dittoEval_loader
+        self.local_test_iter = None
         self.different_client_loader = different_client_loader
         self.client = ""
 
