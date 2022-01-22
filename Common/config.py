@@ -1,4 +1,4 @@
-num_epochs = 51
+num_epochs = 11
 total_number_clients = 120
 num_workers = 10
 
@@ -31,6 +31,8 @@ llr = 0.1 # local learning rate
 # adaptive Ditto parameters
 minLambda = 0.05
 maxLambda = 2.00
+# global Ditto parameters
+global_lambda = 0.05
 
 # adaptive clipping parameters
 initClippingBound = 10 # initial clipping bound
@@ -44,7 +46,7 @@ z_multiplier = 1 # {0, 0.01, 0.03, 0.1} * num_workers
 # differential privacy parameters
 _noniid = False
 _dpoff = True
-_dprecord, _dpin, _dpclient = True, True, "0" #_dpin: whether _dpclient is involved in the training
+_dprecord, _dpin, _dpclient = False, False, "0" #_dpin: whether _dpclient is involved in the training
 epsilon = 5
 
 # label flipping parameters

@@ -51,14 +51,16 @@ class WorkerBase(metaclass=ABCMeta):
         self._weight_prev = None        # weights before this epoch
         self._weight_cur = None         # weights after this epoch
         self._gradients_list = []
-        
+        self.global_lambda = 0 # similarity: global to local
+
         # local model parameters:
         self.local_model = copy.deepcopy(self.model)
         self.local_loss_func = torch.nn.CrossEntropyLoss()
         self.local_optimizer = torch.optim.Adam(self.local_model.parameters(), config.llr)
+        self._weight_local = None # weight paramters used for global model L2-norm
         self.local_minlambda = config.minLambda
         self.local_maxlambda = config.maxLambda
-        self.local_lambda = self.local_minlambda
+        self.local_lambda = self.local_minlambda # similarity: local to global
 
         # common parameters:
         self._level_length = [0]
@@ -78,9 +80,16 @@ class WorkerBase(metaclass=ABCMeta):
         self._gradients = gradients
 
     def get_weights(self):
-        """ getting weights/layer"""
+        """ getting weights per layer"""
         weights = []
         for param in self.model.parameters():
+            weights.append(param.data)
+        return copy.deepcopy(weights)
+
+    def get_local_weights(self):
+        """ getting local weights per layer"""
+        weights = []
+        for param in self.local_model.parameters():
             weights.append(param.data)
         return copy.deepcopy(weights)
 
@@ -106,22 +115,34 @@ class WorkerBase(metaclass=ABCMeta):
             self.local_maxlambda
         )
     
-    def train_step(self, x, y):
+    def train_step(self, x_global, y_global, x_local=None, y_local=None):
         """ one mini_batch training step """
-        # inputs:
-        x = x.to(self.device)
-        y = y.to(self.device)
+        # global inputs:
+        x = x_global.to(self.device)
+        y = y_global.to(self.device)
 
         # global model training:
         y_hat = self.model(x)
         loss = self.loss_func(y_hat, y)
         self.optimizer.zero_grad() 
         loss.backward()
+        layer = 0
+        for param in self.model.parameters():
+            param.grad += self.global_lambda * (param - self._weight_local[layer])
+            layer += 1 
         self.optimizer.step()
 
+        # local inputs:
+        if x_local != None and y_local != None:
+            x = x_local.to(self.device)
+            y = y_local.to(self.device)
+        else:
+            x = x.detach()
+            y = y.detach()
+
         # local model training:
-        y_hat_local = self.local_model(x.detach())
-        loss_local = self.local_loss_func(y_hat_local, y.detach())
+        y_hat_local = self.local_model(x)
+        loss_local = self.local_loss_func(y_hat_local, y)
         self.local_optimizer.zero_grad()
         loss_local.backward()
         layer = 0
@@ -153,6 +174,11 @@ class WorkerBase(metaclass=ABCMeta):
             
             # retrieve weights from the global model
             self._weight_prev, batch_count, start = self.get_weights(), 0, time.time()
+            # retrieve local weights from the local model
+            self._weight_local = self.get_local_weights()
+            if epoch > int(self.config.num_epochs/2): #(!issue)
+            # global model only learns from the local when local accuracy is acceptable
+                self.global_lambda = self.config.global_lambda
 
             if self.thread_id == 0: # thread_0 responds for recording
                 self.acc_dp.append(evaluate_accuracy(self.dpclient_iter, self.model))
@@ -164,6 +190,7 @@ class WorkerBase(metaclass=ABCMeta):
             # global & local models training
             for X, y in self.train_iter:
                 batch_count += 1
+                
                 # training
                 self.train_step(X, y)
                 # evaluation
@@ -177,8 +204,8 @@ class WorkerBase(metaclass=ABCMeta):
                 if batch_count == len(self.train_iter) and self.thread_id == 0:
                     test_acc = evaluate_accuracy(self.test_iter, self.model)
                     print(
-                        "epoch: %d | local_acc: %.3f | global_acc: %.3f | Ditto: %.3f | time: %.2f | client: %s"
-                        %(epoch, local_test_acc, test_acc, np.mean(lambda_list), time.time() - start, self.client)
+                        "epoch: %d | local_acc: %.3f | global_acc: %.3f | Ditto: L %.3f, G %.3f | time: %.2f | client: %s"
+                        %(epoch, local_test_acc, test_acc, np.mean(lambda_list), self.global_lambda, time.time() - start, self.client)
                     )
             
             # global model update

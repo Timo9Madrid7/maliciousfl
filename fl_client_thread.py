@@ -1,4 +1,5 @@
-from Common.Node.workerbaseDitto_FedAvg import WorkerBase as WorkerBaseDitto
+# from Common.Node.workerbaseDitto_FedAvg import WorkerBase as WorkerBaseDitto
+from Common.Node.workerbase_v3 import WorkerBase as WorkerBaseDitto
 from Common.Grpc.fl_grpc_pb2 import GradRequest_Clipping
 import torch
 from torch import nn
