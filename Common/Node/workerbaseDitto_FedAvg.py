@@ -120,8 +120,8 @@ class WorkerBase(metaclass=ABCMeta):
         self.optimizer.step()
 
         # local model training:
-        y_hat_local = self.local_model(x)
-        loss_local = self.local_loss_func(y_hat_local, y)
+        y_hat_local = self.local_model(x.detach())
+        loss_local = self.local_loss_func(y_hat_local, y.detach())
         self.local_optimizer.zero_grad()
         loss_local.backward()
         layer = 0
