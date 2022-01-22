@@ -126,7 +126,7 @@ class WorkerBase(metaclass=ABCMeta):
         loss_local.backward()
         layer = 0
         for param in self.local_model.parameters():
-            param.grad += self.local_lambda * (param - self._weight_prev[layer])
+            param.grad += self.local_lambda * torch.abs(param - self._weight_prev[layer])
             layer += 1
         self.local_optimizer.step()
 
