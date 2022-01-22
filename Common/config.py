@@ -1,4 +1,4 @@
-num_epochs = 11
+num_epochs = 21
 total_number_clients = 120
 num_workers = 10
 
@@ -32,7 +32,7 @@ llr = 0.1 # local learning rate
 minLambda = 0.05
 maxLambda = 2.00
 # global Ditto parameters
-global_lambda = 0.05
+global_lambda = 0.005
 
 # adaptive clipping parameters
 initClippingBound = 10 # initial clipping bound
