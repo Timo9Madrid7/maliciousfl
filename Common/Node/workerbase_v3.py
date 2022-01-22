@@ -1,7 +1,7 @@
 import logging
-from logging import config
+# from logging import config
 import random
-from select import select
+# from select import select
 import torch
 import numpy as np
 import time
@@ -9,7 +9,8 @@ import copy
 import itertools
 from abc import ABCMeta, abstractmethod
 
-from torch.optim import optimizer
+# from torch.optim import optimizer
+from sklearn.metrics.pairwise import pairwise_distances
 
 from Common.Utils.evaluate import evaluate_accuracy
 from Common.config import _dpin, _dpclient, _dprecord, _noniid
@@ -207,6 +208,7 @@ class WorkerBase(metaclass=ABCMeta):
                         "epoch: %d | local_acc: %.3f | global_acc: %.3f | Ditto: L %.3f, G %.3f | time: %.2f | client: %s"
                         %(epoch, local_test_acc, test_acc, np.mean(lambda_list), self.global_lambda, time.time() - start, self.client)
                     )
+                    # print(" | similarity:", self.show_similarity())
             
             # global model update
             self._weight_cur = self.get_weights()
@@ -221,6 +223,18 @@ class WorkerBase(metaclass=ABCMeta):
 
     def write_dp_acc_record(self):
         np.savetxt("./Eva/dp_test_acc/dpclient_"+_dpclient+".txt", self.acc_dp)
+
+    def show_similarity(self):
+        """this function is only used for debugging"""
+        global_weights = []
+        local_weights = []
+        for global_param, local_param in zip(self.model.parameters(), self.local_model.parameters()):
+            global_weights += global_param.data.view(-1).cpu().numpy().tolist()
+            local_weights += local_param.data.view(-1).cpu().numpy().tolist()
+
+        l2 = pairwise_distances([global_weights], [local_weights], metric="euclidean")
+        cos = pairwise_distances([global_weights], [local_weights], metric="cosine")
+        return l2.item(), cos.item()
 
     @abstractmethod
     def update(self, model_id):
