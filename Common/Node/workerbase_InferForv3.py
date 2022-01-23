@@ -2,7 +2,6 @@ from copy import deepcopy
 import logging
 import numpy as np
 import torch
-import time
 import copy
 from abc import ABCMeta, abstractmethod
 
@@ -16,12 +15,12 @@ class WorkerBase(metaclass=ABCMeta):
         # input data:
         self.train_iter = train_iter
         self.test_iter = test_iter
+        assert self.test_iter == None # inference client don't need test_iter
     
         # global model parameters:
         self.model = model
-        # self.loss_func = loss_func
         self.loss_func = loss_func
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.005)
+        self.optimizer = optimizer
         self._gradients = None          # not really gradients, but weights difference in one epoch
         self._weight_prev = None        # weights before this epoch
         self._weight_cur = None         # weights after this epoch
@@ -94,12 +93,11 @@ class WorkerBase(metaclass=ABCMeta):
     def genTrain(self, fake_label=1, train_batch_size=64, generate_batch_size=64, num_iter=8):
         # --- 1. Replicate the model as D
         self.D_model = copy.deepcopy(self.model)
-        target = self.target
         for _ in range(num_iter):
             # --- 2. Run Generator G on D targeting class
             noise_init = torch.randn(train_batch_size,100,1,1)    # random noise
             generated_data = self.G_model(noise_init).to(self.device) # fake images
-            class_label = target * torch.ones(train_batch_size, dtype=torch.long).to(self.device) # inference class
+            class_label = self.target * torch.ones(train_batch_size, dtype=torch.long).to(self.device) # inference class
             # --- 3. Update G based on the answer from D
             y_G_hat = self.D_model(generated_data) # fool Discriminator
             G_loss = self.loss_func(y_G_hat, class_label) # ->1:indistinguishable, ->0:distinguishable
@@ -122,10 +120,10 @@ class WorkerBase(metaclass=ABCMeta):
         
         return x_.detach_(), y_, G_loss
 
-    def fl_train(self, times):
+    def fl_train(self):
         for epoch in range(self.config.num_epochs):
             self._weight_prev, batch_count = self.get_weights(), 0
-            slot = np.random.choice(range(len(self.train_iter)), 8, replace=False)
+            slot = np.random.choice(range(len(self.train_iter)), 6, replace=False)
             G_loss, poison = 0, []
             for X, y in self.train_iter:
                 
@@ -142,11 +140,11 @@ class WorkerBase(metaclass=ABCMeta):
                     y_valid_hat = special.softmax(
                         self.model(self.G_model(torch.randn(1,100,1,1))).view(-1).detach().numpy()  
                     )
-                    if y_valid_hat[0] > y_valid_hat[1:].mean():
+                    if y_valid_hat[self.target] > np.delete(y_valid_hat, self.target).mean():
                         X = torch.cat((X, x_gen))
                         y = torch.cat((y, y_gen))
                         poison += [1]
-                    # elif np.sum(y_valid_hat[0] < y_valid_hat[1:]) > 4 and epoch > 2:
+                    # elif np.sum(y_valid_hat[self.target] < np.delete(y_valid_hat, self.target)) > 4 and epoch > 2:
                     #     X = torch.cat((X, x_gen))
                     #     y = torch.cat((y, (self.target*torch.ones(len(x_gen), dtype=torch.long)).to(self.device)))
                     #     poison += [2]
@@ -179,4 +177,3 @@ class WorkerBase(metaclass=ABCMeta):
     @abstractmethod
     def update(self):
         pass
-    
