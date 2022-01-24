@@ -8,7 +8,10 @@ from sklearn.metrics.pairwise import pairwise_distances
 
 import Common.config as config
 from Common.Utils.gradients_recorder import detect_GAN_raw, save_distance_matrix
-from Common.Utils.gaussian_moments_account import acc_track_delta
+from Common.Utils.gaussian_moments_account import AutoDP_epsilon
+
+import warnings 
+warnings.filterwarnings("ignore", message="invalid value encountered in double_scalars")
 
 class ClearDenseServer(FLGrpcClipServer):
     def __init__(self, address, port, config, handler):
@@ -43,6 +46,9 @@ class AvgGradientHandler(Handler):
         # self.npy_num = 0
         self.total_number = config.total_number_clients # the total number of clients
         self.acc_params = []
+        
+        # moments_account:
+        self.track_eps = AutoDP_epsilon(config.delta)
 
     def computation(self, data_in, b_in:list, S, gamma, blr):
         # calculating adaptive noise
@@ -79,8 +85,8 @@ class AvgGradientHandler(Handler):
             noise_compensatory_grad = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.z_multiplier*S, size=grad_in.shape[1])
             noise_compensatory_b = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.b_noise)
             # --- Gaussian Moments Accountant Start ---
-            self.acc_params.append((len(bengin_id)/self.total_number, config.z_multiplier, 1))
-            cur_eps, cur_delta = acc_track_delta(self.acc_params, eps=config.epsilon)
+            self.track_eps.update_mech(len(bengin_id)/self.total_number, config.z_multiplier, 1)
+            cur_eps, cur_delta = self.track_eps.get_epsilon(), config.delta
             # --- Gaussian Moments Accountant End ---
             print("epsilon: %.2f | delta: %.6f | used id: "%(cur_eps, cur_delta), bengin_id)
 

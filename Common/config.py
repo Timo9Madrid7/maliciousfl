@@ -32,7 +32,7 @@ llr = 0.1 # local learning rate
 minLambda = 0.05
 maxLambda = 2.00
 # global Ditto parameters
-global_lambda = 0.001
+global_lambda = 0
 
 # adaptive clipping parameters
 initClippingBound = 10 # initial clipping bound
@@ -45,9 +45,9 @@ z_multiplier = 1 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters
 _noniid = False
-_dpoff = True
+_dpoff = False
 _dprecord, _dpin, _dpclient = False, False, "0" #_dpin: whether _dpclient is involved in the training
-epsilon = 5
+delta = 1e-4
 
 # label flipping parameters
 flipping_clients = []

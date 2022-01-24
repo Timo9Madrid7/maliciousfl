@@ -42,13 +42,13 @@ import scipy.integrate as integrate
 import scipy.stats
 #from sympy.mpmath import mp
 import mpmath as mp
+from sympy import compose
 
 
 def _to_np_float64(v):
     if math.isnan(v) or math.isinf(v):
         return np.inf
     return np.float64(v)
-
 
 ######################
 # FLOAT64 ARITHMETIC #
@@ -319,3 +319,54 @@ def acc_track_delta(parameters, eps=5, max_lmbd=32):
             log_moment += compute_log_moment(q, sigma, T, lmbd)
         log_moments.append((lmbd, log_moment))
     return get_privacy_spent(log_moments, target_eps=eps)
+
+###########
+# Auto DP #
+###########
+from autodp.autodp_core import Mechanism
+from autodp import mechanism_zoo, transformer_zoo
+import copy
+
+class NoisySGD_Gaussian(Mechanism):
+    def __init__(self, frac_q, sigma, niter, type="RDP", name="NoisySGD"):
+        super(NoisySGD_Gaussian, self).__init__()
+        self.name = name
+        self.params={'prob':frac_q,'sigma':sigma,'niter':niter}
+
+        subsample = transformer_zoo.AmplificationBySampling()
+        mech = mechanism_zoo.GaussianMechanism(sigma=sigma)
+        compose = transformer_zoo.Composition()
+
+        SubsampledGaussian_mech = subsample(mech, frac_q, improved_bound_flag=True)
+        mech_composed = compose([SubsampledGaussian_mech],[niter])
+
+        rdp_total = mech_composed.RenyiDP
+        self.propagate_updates(rdp_total,type_of_update=type)
+
+class AutoDP_epsilon():
+    def __init__(self, delta=1e-4):
+        self.compose = transformer_zoo.Composition()
+        self.delta = delta
+        self.mech_prev = None
+        self.mech_cur = None
+    
+    def update_mech(self, q, sigma, T):
+        if self.mech_prev == None:
+            self.mech_prev = NoisySGD_Gaussian(q, sigma, T)
+        elif self.mech_cur == None:
+            self.mech_cur = NoisySGD_Gaussian(q, sigma, T)
+        else:
+            self.mech_prev = self.compose([self.mech_prev,self.mech_cur], [1,1])
+            self.mech_cur =  NoisySGD_Gaussian(q, sigma, T)
+
+
+    def get_epsilon(self):
+        if self.mech_cur == None:
+            return self.mech_prev.get_approxDP(self.delta)
+        else:
+            mech_composed = self.compose([self.mech_prev,self.mech_cur], [1,1])
+            return mech_composed.get_approxDP(self.delta)
+
+
+
+
