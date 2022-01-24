@@ -8,7 +8,7 @@ from sklearn.metrics.pairwise import pairwise_distances
 
 import Common.config as config
 from Common.Utils.gradients_recorder import detect_GAN_raw, save_distance_matrix
-from Common.Utils.gaussian_moments_account import AutoDP_epsilon
+from Common.Utils.gaussian_moments_account import AutoDP_epsilon, acc_track_eps
 
 import warnings 
 warnings.filterwarnings("ignore", message="invalid value encountered in double_scalars")
@@ -85,9 +85,14 @@ class AvgGradientHandler(Handler):
             noise_compensatory_grad = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.z_multiplier*S, size=grad_in.shape[1])
             noise_compensatory_b = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.b_noise)
             # --- Gaussian Moments Accountant Start ---
+            # self.acc_params.append((len(bengin_id)/self.total_number, config.z_multiplier, 1))
+            # cur_eps, cur_delta = acc_track_eps(self.acc_params, eps=config.epsilon)
+            # --- Gaussian Moments Accountant End ---
+            # --- Renyi Differential Privacy Start --- #
             self.track_eps.update_mech(len(bengin_id)/self.total_number, config.z_multiplier, 1)
             cur_eps, cur_delta = self.track_eps.get_epsilon(), config.delta
-            # --- Gaussian Moments Accountant End ---
+            # --- Renyi Differential Privacy End --- #
+
             print("epsilon: %.2f | delta: %.6f | used id: "%(cur_eps, cur_delta), bengin_id)
 
             # adaptive clipping
