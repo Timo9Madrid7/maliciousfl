@@ -320,12 +320,21 @@ def acc_track_delta(parameters, eps=5, max_lmbd=32):
         log_moments.append((lmbd, log_moment))
     return get_privacy_spent(log_moments, target_eps=eps)
 
+def acc_track_eps(parameters, delta=1e-4, max_lmbd=32):
+    lmbds = range(1, max_lmbd + 1)
+    log_moments = []
+    for lmbd in lmbds:
+        log_moment = 0
+        for q, sigma, T in parameters:
+            log_moment += compute_log_moment(q, sigma, T, lmbd)
+        log_moments.append((lmbd, log_moment))
+    return get_privacy_spent(log_moments, target_delta=delta)
+
 ###########
 # Auto DP #
 ###########
 from autodp.autodp_core import Mechanism
 from autodp import mechanism_zoo, transformer_zoo
-import copy
 
 class NoisySGD_Gaussian(Mechanism):
     def __init__(self, frac_q, sigma, niter, type="RDP", name="NoisySGD"):
@@ -347,25 +356,22 @@ class AutoDP_epsilon():
     def __init__(self, delta=1e-4):
         self.compose = transformer_zoo.Composition()
         self.delta = delta
-        self.mech_prev = None
-        self.mech_cur = None
+        self.mech_list = []
+        self.iter_list = []
     
     def update_mech(self, q, sigma, T):
-        if self.mech_prev == None:
-            self.mech_prev = NoisySGD_Gaussian(q, sigma, T)
-        elif self.mech_cur == None:
-            self.mech_cur = NoisySGD_Gaussian(q, sigma, T)
+        if (q, sigma) in self.mech_list:
+            self.iter_list[self.mech_list.index((q,sigma))] += T
         else:
-            self.mech_prev = self.compose([self.mech_prev,self.mech_cur], [1,1])
-            self.mech_cur =  NoisySGD_Gaussian(q, sigma, T)
-
+            self.mech_list.append((q,sigma))
+            self.iter_list.append(1)
 
     def get_epsilon(self):
-        if self.mech_cur == None:
-            return self.mech_prev.get_approxDP(self.delta)
-        else:
-            mech_composed = self.compose([self.mech_prev,self.mech_cur], [1,1])
-            return mech_composed.get_approxDP(self.delta)
+        mech_composed = []
+        for (q, sigma), T in zip(self.mech_list, self.iter_list):
+            mech_composed.append(NoisySGD_Gaussian(q,sigma,T))
+        return self.compose(mech_composed, [1]*len(mech_composed)).get_approxDP(self.delta)
+
 
 
 
