@@ -154,7 +154,8 @@ class WorkerBase(metaclass=ABCMeta):
 
     def select_client(self):
         id = random.randint(0, self.config.total_number_clients-1)
-        self.local_model.load_state_dict(torch.load("./Model/Local_Models/LeNet_"+str(id))) 
+        with open("./Model/Local_Models/LeNet_"+str(id), 'rb') as f:
+            self.local_model.load_state_dict(torch.load(f)) 
         _client = self.clients_index[id]
         if _dpin and _client == _dpclient:
             self.train_iter = self.different_client_loader(_client, noniid=_noniid)
