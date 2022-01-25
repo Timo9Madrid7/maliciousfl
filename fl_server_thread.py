@@ -84,14 +84,14 @@ class AvgGradientHandler(Handler):
         else:
             noise_compensatory_grad = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.z_multiplier*S, size=grad_in.shape[1])
             noise_compensatory_b = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.b_noise)
-            # --- Gaussian Moments Accountant Start ---
-            # self.acc_params.append((len(bengin_id)/self.total_number, config.z_multiplier, 1))
-            # cur_eps, cur_delta = acc_track_eps(self.acc_params, eps=config.epsilon)
-            # --- Gaussian Moments Accountant End ---
-            # --- Renyi Differential Privacy Start --- #
-            self.track_eps.update_mech(len(bengin_id)/self.total_number, config.z_multiplier, 1)
-            cur_eps, cur_delta = self.track_eps.get_epsilon(), config.delta
-            # --- Renyi Differential Privacy End --- #
+            
+            sigma = (config.z_multiplier**(-2) + (2*config.b_noise)**(-2))**(-0.5)
+            if config.account_method == "googleTF": # Gaussian Moments Accountant
+                self.acc_params.append((len(bengin_id)/self.total_number, sigma, 1))
+                cur_eps, cur_delta = acc_track_eps(self.acc_params, eps=config.epsilon)
+            elif config.account_method == "autodp": # Renyi Differential Privacy
+                self.track_eps.update_mech(len(bengin_id)/self.total_number, sigma, 1)
+                cur_eps, cur_delta = self.track_eps.get_epsilon(), config.delta
 
             print("epsilon: %.2f | delta: %.6f | used id: "%(cur_eps, cur_delta), bengin_id)
 
