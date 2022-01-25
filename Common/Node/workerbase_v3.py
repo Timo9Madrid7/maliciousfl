@@ -209,8 +209,8 @@ class WorkerBase(metaclass=ABCMeta):
                         "epoch: %d | local_acc: %.3f | global_acc: %.3f | Ditto: L %.3f, G %.3f | time: %.2f | client: %s"
                         %(epoch, local_test_acc, test_acc, np.mean(lambda_list), self.global_lambda, time.time() - start, self.client)
                     )
-                    print(" | l2: %.3f | cosine: %.3f | multi: %.3f" 
-                    %(self.show_similarity()[0], self.show_similarity()[1], self.show_similarity()[0]*self.show_similarity()[1]))
+                    # l2_distance, cos_distance = self.show_similarity()
+                    # print(" | l2: %.3f | cosine: %.3f | multi: %.3f"%(l2_distance, cos_distance, l2_distance*cos_distance))
             
             # global model update
             self._weight_cur = self.get_weights()
