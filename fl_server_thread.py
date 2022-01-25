@@ -95,12 +95,17 @@ class AvgGradientHandler(Handler):
 
             print("epsilon: %.2f | delta: %.6f | used id: "%(cur_eps, cur_delta), bengin_id)
 
-            # adaptive clipping
-            b_in = list(map(lambda x: max(0,x), b_in))
-            b_avg = (np.sum(b_in) + noise_compensatory_b) / config.num_workers
-            S *= np.exp(-blr*(min(b_avg,1)-gamma))
-
+        # gradients average
         grad_in = (grad_in[bengin_id].sum(axis=0) + noise_compensatory_grad) / len(bengin_id)
+        # post-processing
+        grad_in_l2_norm = np.linalg.norm(grad_in)
+        if grad_in_l2_norm > S: # clipping averaged gradients
+            grad_in *= S/grad_in_l2_norm
+
+        # adaptive clipping
+        b_in = list(map(lambda x: max(0,x), b_in))
+        b_avg = (np.sum(b_in) + noise_compensatory_b) / config.num_workers
+        S *= np.exp(-blr*(min(b_avg,1)-gamma))
 
         return grad_in.tolist(), S
 

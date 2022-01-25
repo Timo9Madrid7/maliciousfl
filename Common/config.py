@@ -41,7 +41,7 @@ blr = 0.5 # clipping bound learning rate
 gamma = 0.5 # non-clipping ratio {0.1, 0.3, 0.5, 0.7, 0.9}
 # b_noise = num_workers/20 # noise standard deviation added to counts (from server side)
 b_noise = 5 # (from client side) [1.7823 ~ (e,10^-5)DP]
-z_multiplier = 0.8 # {0, 0.01, 0.03, 0.1} * num_workers
+z_multiplier = 1.005 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters
 _noniid = False
