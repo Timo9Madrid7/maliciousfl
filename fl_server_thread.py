@@ -79,8 +79,8 @@ class AvgGradientHandler(Handler):
         #     self.npy_num += 1
         # --- HDBScan End --- #
         if config._dpoff:
-            noise_compensatory_grad = 0
-            noise_compensatory_b = 0
+            grad_in = grad_in[bengin_id].mean(axis=0)
+            S = 0.
             print("used id: ", bengin_id)
         else:
             noise_compensatory_grad = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.z_multiplier*S, size=grad_in.shape[1])
@@ -95,17 +95,17 @@ class AvgGradientHandler(Handler):
 
             print("epsilon: %.2f | delta: %.6f | used id: "%(cur_eps, cur_delta), bengin_id)
 
-        # gradients average
-        grad_in = (grad_in[bengin_id].sum(axis=0) + noise_compensatory_grad) / len(bengin_id)
-        # post-processing
-        grad_in_l2_norm = np.linalg.norm(grad_in)
-        if grad_in_l2_norm > S: # clipping averaged gradients
-            grad_in *= S/grad_in_l2_norm
+            # gradients average
+            grad_in = (grad_in[bengin_id].sum(axis=0) + noise_compensatory_grad) / len(bengin_id)
+            # post-processing
+            grad_in_l2_norm = np.linalg.norm(grad_in)
+            if grad_in_l2_norm > S: # clipping averaged gradients
+                grad_in *= S/grad_in_l2_norm
 
-        # adaptive clipping
-        b_in = list(map(lambda x: max(0,x), b_in))
-        b_avg = (np.sum(b_in) + noise_compensatory_b) / config.num_workers
-        S *= np.exp(-blr*(min(b_avg,1)-gamma))
+            # adaptive clipping
+            b_in = list(map(lambda x: max(0,x), b_in))
+            b_avg = (np.sum(b_in) + noise_compensatory_b) / config.num_workers
+            S *= np.exp(-blr*(min(b_avg,1)-gamma))
 
         return grad_in.tolist(), S
 
