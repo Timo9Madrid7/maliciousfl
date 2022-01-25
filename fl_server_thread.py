@@ -80,7 +80,7 @@ class AvgGradientHandler(Handler):
         # --- HDBScan End --- #
         if config._dpoff:
             grad_in = grad_in[bengin_id].mean(axis=0)
-            S = 0.
+            S = np.inf
             print("used id: ", bengin_id)
         else:
             noise_compensatory_grad = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.z_multiplier*S, size=grad_in.shape[1])
