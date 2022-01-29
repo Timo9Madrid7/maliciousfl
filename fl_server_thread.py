@@ -88,7 +88,7 @@ class AvgGradientHandler(Handler):
             
             if config.account_method == "googleTF": # Gaussian Moments Accountant
                 self.acc_params.append((len(bengin_id)/self.total_number, self.sigma, 1))
-                cur_eps, cur_delta = acc_track_eps(self.acc_params, eps=config.epsilon)
+                cur_eps, cur_delta = acc_track_eps(self.acc_params, delta=config.delta)
             elif config.account_method == "autodp": # Renyi Differential Privacy
                 self.track_eps.update_mech(len(bengin_id)/self.total_number, self.sigma, 1)
                 cur_eps, cur_delta = self.track_eps.get_epsilon(), config.delta
