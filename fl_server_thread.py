@@ -20,7 +20,8 @@ class ClearDenseServer(FLGrpcClipServer):
         self.port = port
         self.config = config
         self.handler = handler
-        self.clippingBound = config.initClippingBound
+
+        self.clippingBound = self.config.initClippingBound
 
     # override UpdateGrad_float for server
     # receive gradients from clients, aggregate, and give them back
@@ -33,9 +34,19 @@ class ClearDenseServer(FLGrpcClipServer):
 
 
 class AvgGradientHandler(Handler):
-    def __init__(self, num_workers):
+    def __init__(self, config):
         super(AvgGradientHandler, self).__init__()
-        self.num_workers = num_workers
+        self.config = config
+        self.total_number = config.total_number_clients # the total number of clients
+        self.dpoff = self.config._dpoff
+        self.clippingBound = self.config.initClippingBound # initial clipping bound for a client
+        self.grad_noise_sigma = self.config.grad_noise_sigma
+        self.b_noise_std = self.config.b_noise_std
+        self.delta = self.config.delta
+        self.clients_per_round = self.config.num_workers
+        self.account_method = self.config.account_method
+        self.acc_params = []
+
         self.cluster = hdbscan.HDBSCAN(
             metric='l2', 
             min_cluster_size=2, # the smallest size grouping that you wish to consider a cluster
@@ -43,20 +54,17 @@ class AvgGradientHandler(Handler):
             min_samples=2, # how conservative you want you clustering to be
             cluster_selection_epsilon=0.1,
         )
-        # self.npy_num = 0
-        self.total_number = config.total_number_clients # the total number of clients
-        self.acc_params = []
         
         # moments_account:
-        self.sigma = (config.z_multiplier**(-2) + (2*config.b_noise)**(-2))**(-0.5)
-        self.track_eps = AutoDP_epsilon(config.delta)
+        self.sigma = (self.grad_noise_sigma**(-2) + (2*self.b_noise_std)**(-2))**(-0.5)
+        self.track_eps = AutoDP_epsilon(self.delta)
 
     def computation(self, data_in, b_in:list, S, gamma, blr):
         # calculating adaptive noise
         # grad_noise = (config.z_multiplier**(-2) - (2*config.b_noise)**(-2))**(-0.5) * S
 
         # average aggregator
-        grad_in = np.array(data_in).reshape((self.num_workers, -1))
+        grad_in = np.array(data_in).reshape((self.clients_per_round, -1))
         # detect_GAN_raw("Eva/gradients/GANDetection/raw_data.txt", grad_in)
 
         # --- HDBScan Start --- #
@@ -65,7 +73,7 @@ class AvgGradientHandler(Handler):
         self.cluster.fit(distance_matrix)
         label = self.cluster.labels_
         if (label==-1).all():
-            bengin_id = np.arange(self.num_workers).tolist()
+            bengin_id = np.arange(self.clients_per_round).tolist()
         else:
             label_class, label_count = np.unique(label, return_counts=True)
             # label = -1 are discarded, as they cannot be assigned to any clusters
@@ -78,18 +86,20 @@ class AvgGradientHandler(Handler):
         #     np.save('../temp/grads_'+str(self.npy_num)+'npy', grad_in)
         #     self.npy_num += 1
         # --- HDBScan End --- #
-        if config._dpoff:
+        if self.dpoff:
             grad_in = grad_in[bengin_id].mean(axis=0)
             S = np.inf
             print("used id: ", bengin_id)
         else:
-            noise_compensatory_grad = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.z_multiplier*S, size=grad_in.shape[1])
-            noise_compensatory_b = (1-len(bengin_id)/config.num_workers)*np.random.normal(0, config.b_noise)
+            extra_grad_noise_std = self.grad_noise_sigma * self.clippingBound * np.sqrt(1-len(bengin_id)/self.clients_per_round)
+            extra_b_noise_std = self.b_noise_std * np.sqrt(1-len(bengin_id)/self.clients_per_round)
+            noise_compensatory_grad = np.random.normal(0, extra_grad_noise_std, size=grad_in.shape[1])
+            noise_compensatory_b = np.random.normal(0, extra_b_noise_std)
             
-            if config.account_method == "googleTF": # Gaussian Moments Accountant
+            if self.account_method == "googleTF": # Gaussian Moments Accountant
                 self.acc_params.append((len(bengin_id)/self.total_number, self.sigma, 1))
                 cur_eps, cur_delta = acc_track_eps(self.acc_params, delta=config.delta)
-            elif config.account_method == "autodp": # Renyi Differential Privacy
+            elif self.account_method == "autodp": # Renyi Differential Privacy
                 self.track_eps.update_mech(len(bengin_id)/self.total_number, self.sigma, 1)
                 cur_eps, cur_delta = self.track_eps.get_epsilon(), config.delta
 
@@ -104,7 +114,7 @@ class AvgGradientHandler(Handler):
 
             # adaptive clipping
             b_in = list(map(lambda x: max(0,x), b_in))
-            b_avg = (np.sum(b_in) + noise_compensatory_b) / config.num_workers
+            b_avg = (np.sum(b_in) + noise_compensatory_b) / self.clients_per_round
             S *= np.exp(-blr*(min(b_avg,1)-gamma))
 
         return grad_in.tolist(), S
@@ -115,10 +125,10 @@ class AvgGradientHandler(Handler):
 
 
 if __name__ == "__main__":
-    gradient_handler = AvgGradientHandler(num_workers=config.num_workers)
+    gradient_handler = AvgGradientHandler(config=config)
 
     clear_server = ClearDenseServer(address=config.server1_address, port=config.port1, config=config,
                                     handler=gradient_handler)
-    print('lambda:', config.coef, '| dpoff:', config._dpoff, '| b_noise:', config.b_noise, 
-        '| gamma:', config.gamma, '| z:', config.z_multiplier, '| dp_in:', config._dpin)
+    print('lambda:', config.coef, '| dpoff:', config._dpoff, '| b_noise_std:', config.b_noise_std, 
+        '| clip_ratio:', config.gamma, '| grad_noise_sigma:', config.grad_noise_sigma, '| dp_in:', config._dpin)
     clear_server.start()

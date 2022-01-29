@@ -26,28 +26,32 @@ class ClearDenseClient(WorkerBaseDitto):
         test_iter=test_iter, train_iter_loader=train_iter_loader, dittoEval_loader=dittoEval_loader, different_client_loader=different_client_loader,
         model=model, loss_func=loss_func, config=config, optimizer=optimizer, device=device)
         self.grad_stub = grad_stub # communication channel
-        self.clippingBound = config.initClippingBound # initial clipping bound for a client
+        
+        self.dpoff = self.config._dpoff
+        self.clippingBound = self.config.initClippingBound # initial clipping bound for a client
+        self.grad_noise_sigma = self.config.grad_noise_sigma
+        self.b_noise_std = self.config.b_noise_std
+        self.clients_per_round = self.config.num_workers
 
     def adaptiveClipping(self, input_gradients):
         '''
         To clip the input gradient, if its norm is larger than the setting
         '''
 
-        if config.gamma == 1 or config._dpoff: # don't clip
+        if self.dpoff: # don't clip
             return np.array(input_gradients), 1
         # else: do clipping+noising
 
         gradients = np.array(input_gradients)
 
         # --- adaptive noise calculation ---
-        if config.z_multiplier==0:
+        if self.grad_noise_sigma==0:
             grad_noise = 0
             b_noise = 0
         else: 
-            std_b_noise = config.b_noise
-            std_g_noise = config.z_multiplier * self.clippingBound # deviation for gradients
-            b_noise = np.random.normal(0, std_b_noise)/config.num_workers
-            grad_noise = np.random.normal(0, std_g_noise, size=gradients.shape)/config.num_workers
+            grad_noise_std = self.grad_noise_sigma * self.clippingBound # deviation for gradients
+            b_noise = np.random.normal(0, self.b_noise_std)/self.clients_per_round
+            grad_noise = np.random.normal(0, grad_noise_std, size=gradients.shape)/self.clients_per_round
         # --- adaptive noise calculation ---
            
         norm = np.linalg.norm(gradients)        
