@@ -53,8 +53,8 @@ class ClearDenseClient(WorkerBaseDitto):
             b_noise = 0
         else: 
             grad_noise_std = self.grad_noise_sigma * self.clippingBound # deviation for gradients
-            b_noise = np.random.normal(0, self.b_noise_std)/self.clients_per_round
-            grad_noise = np.random.normal(0, grad_noise_std, size=gradients.shape)/self.clients_per_round
+            b_noise = np.random.normal(0, self.b_noise_std/np.sqrt(self.clients_per_round))
+            grad_noise = np.random.normal(0, grad_noise_std/np.sqrt(self.clients_per_round), size=gradients.shape)
         # --- adaptive noise calculation ---
            
         norm = np.linalg.norm(gradients)
@@ -101,7 +101,7 @@ if __name__ == '__main__':
         grad_stub = FL_GrpcStub(grad_channel)
 
         for epoch in range(config.num_epochs):
-            client_id = str(np.random.randint(0,120))
+            client_id = str(np.random.randint(0,config.total_number_clients))
             train_iter = load_data_noniid_mnist(client_id, noniid=False)
             eval_iter = load_data_dittoEval_mnist(client_id, noniid=False)
 
