@@ -86,7 +86,7 @@ if __name__ == '__main__':
     setup_logging(default_path=yaml_path)
 
     # model setttings
-    PATH = './Model/LeNet'
+    PATH = config.global_models_path
     model = LeNet().to(device)
     model.load_state_dict(torch.load(PATH))
     optimizer = torch.optim.Adam(model.parameters(), args.lr)

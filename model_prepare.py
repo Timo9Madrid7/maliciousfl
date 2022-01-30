@@ -7,7 +7,7 @@ import torchvision.models as models
 
 
 
-PATH = './Model/LeNet'
+PATH = config.global_models_path
 #PATH = './Model/ResNet18'
 #model = models.resnet18()
 model = LeNet()
@@ -15,7 +15,7 @@ model = LeNet()
 torch.save(model.state_dict(), PATH)
 
 for i in range(config.total_number_clients):
-    torch.save(model.state_dict(), "./Model/Local_Models/LeNet_"+str(i))
+    torch.save(model.state_dict(), config.local_models_path+str(i))
 
 model_load = LeNet()
 #model_load = models.resnet18()

@@ -68,7 +68,7 @@ if __name__ == '__main__':
     yaml_path = 'Log/log.yaml'
     setup_logging(default_path=yaml_path)
 
-    PATH = './Model/LeNet'
+    PATH = config.global_models_path
     model = LeNet().to(device)
     #model = ResNet(BasicBlock, [3,3,3]).to(device)
     model.load_state_dict(torch.load(PATH))
