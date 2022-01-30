@@ -92,7 +92,7 @@ class WorkerBase(metaclass=ABCMeta):
             param.data = self._weight_prev[layer] + diff
             layer += 1
 
-    def adaptive_ditto(self, return_acc, local_acc, threshold=0.05, lr=0.1):
+    def adaptive_ditto(self, return_acc, local_acc, threshold=0.05, lr=0.5):
         self.local_lambda = min(
             max(self.local_minlambda, self.local_lambda + lr * (return_acc - local_acc - threshold)), 
             self.local_maxlambda
