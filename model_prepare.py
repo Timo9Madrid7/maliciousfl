@@ -1,6 +1,7 @@
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import ResNet, BasicBlock
 from Common.Utils.data_loader import load_data_mnist
+from Common import config
 import torch
 import torchvision.models as models
 
@@ -13,7 +14,7 @@ model = LeNet()
 #model = ResNet(BasicBlock, [3,3,3])
 torch.save(model.state_dict(), PATH)
 
-for i in range(120):
+for i in range(config.total_number_clients):
     torch.save(model.state_dict(), "./Model/Local_Models/LeNet_"+str(i))
 
 model_load = LeNet()

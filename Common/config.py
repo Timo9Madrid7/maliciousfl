@@ -1,6 +1,6 @@
-num_epochs = 21
-total_number_clients = 120
-num_workers = 10
+num_epochs = 31
+total_number_clients = 200
+num_workers = 20
 
 idx_max_length = 50000
 grad_shift = 2 ** 20
@@ -29,7 +29,7 @@ grpc_options = [('grpc.max_send_message_length', -1), ('grpc.max_receive_message
 coef = 0.05 # local-global model lambda
 llr = 0.1 # local learning rate
 # adaptive Ditto parameters
-minLambda = 0.05
+minLambda = 0.00
 maxLambda = 2.00
 local_models_path = "./Model/Local_Models/LeNet_"
 # global Ditto parameters
@@ -42,7 +42,7 @@ beta = 0.1 # last round gradient weight
 blr = 0.5 # clipping bound learning rate
 gamma = 0.5 # non-clipping ratio {0.1, 0.3, 0.5, 0.7, 0.9}
 # b_noise = num_workers/20 # noise standard deviation added to counts (from server side)
-b_noise_std = 4 # (from client side) [1.7823 ~ (e,10^-5)DP]
+b_noise_std = 5 # (from client side) [1.7823 ~ (e,10^-5)DP]
 grad_noise_sigma = 1.005 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters

@@ -124,4 +124,4 @@ if __name__ == '__main__':
             else:
                 verbose = False
 
-            clippingBound = client.fl_train(local_epoch=5, verbose=verbose)
+            clippingBound = client.fl_train(local_epoch=3, verbose=verbose)
