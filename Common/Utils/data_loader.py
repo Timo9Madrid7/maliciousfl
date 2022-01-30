@@ -20,6 +20,15 @@ def load_data_mnist(id, batch=None, path=None):
 
     return train_iter
 
+def load_all_test_mnist(batch=128, path="./Data/MNIST/"):
+    transforms = torchvision.transforms
+    test = torchvision.datasets.MNIST(root=path, train=False, download=False, transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ]))
+    test_iter = torch.utils.data.DataLoader(test, batch_size=batch, shuffle=True, num_workers=0)
+    return test_iter
+
 def load_data_posioned_mnist(id, batch=None, path=None):
     data = torch.load(path+'/'+'mnist_train_posioned'+str(id%10)+'_.pt')
     train_iter = torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)

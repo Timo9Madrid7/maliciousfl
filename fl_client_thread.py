@@ -6,7 +6,8 @@ from Common.Grpc.fl_grpc_pb2 import GradRequest_Clipping
 # Utils
 from Common.Node.workerbase_v3 import WorkerBase as WorkerBaseDitto
 from Common.Model.LeNet import LeNet
-from Common.Utils.data_loader import load_data_noniid_mnist, load_data_dittoEval_mnist
+from Common.Utils.data_loader import load_data_noniid_mnist, load_data_dittoEval_mnist, load_all_test_mnist
+from Common.Utils.evaluate import evaluate_accuracy
 from Common.Utils.set_log import setup_logging
 from Common.Utils.options import args_parser
 
@@ -25,7 +26,8 @@ class ClearDenseClient(WorkerBaseDitto):
     def __init__(
         self, thread_id, client_id, train_iter, eval_iter, 
         model, loss_func, optimizer, config, device, grad_stub,
-        clippingBound):
+        clippingBound,
+        debug_test_iter):
         super().__init__(client_id, train_iter, eval_iter, model, loss_func, optimizer, config, device)
         self.grad_stub = grad_stub
 
@@ -35,6 +37,8 @@ class ClearDenseClient(WorkerBaseDitto):
         self.grad_noise_sigma = self.config.grad_noise_sigma
         self.b_noise_std = self.config.b_noise_std
         self.clients_per_round = self.config.num_workers
+
+        self.debug_test_iter = debug_test_iter
 
     def adaptiveClipping(self, input_gradients):
         '''
@@ -77,6 +81,11 @@ class ClearDenseClient(WorkerBaseDitto):
 
         return self.clippingBound
 
+    def evaluation(self):
+        if self.thread_id == 0:
+           return evaluate_accuracy(debug_test_iter, self.model)
+        
+
 if __name__ == '__main__':
 
     args = args_parser() # load setting
@@ -92,6 +101,8 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
     loss_func = torch.nn.CrossEntropyLoss()
     clippingBound = config.initClippingBound
+
+    debug_test_iter = load_all_test_mnist()
 
     # server settings
     server_grad = config.server1_address + ":" + str(config.port1)
@@ -116,7 +127,8 @@ if __name__ == '__main__':
                 config=config,
                 device=device,
                 grad_stub=grad_stub,
-                clippingBound=clippingBound
+                clippingBound=clippingBound,
+                debug_test_iter=debug_test_iter
             )
             if args.id == 0:
                 verbose = True

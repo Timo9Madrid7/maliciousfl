@@ -193,3 +193,7 @@ class WorkerBase(metaclass=ABCMeta):
     def update(self):
         pass
 
+    @abstractmethod
+    def evaluation(self):
+        pass
+
