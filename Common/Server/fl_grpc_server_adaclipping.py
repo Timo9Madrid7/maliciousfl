@@ -1,6 +1,7 @@
 import threading
 import numpy as np
 from Common.Grpc.fl_grpc_pb2_grpc import FL_GrpcServicer, add_FL_GrpcServicer_to_server
+from Common import config
 from concurrent import futures
 import grpc
 import time
@@ -44,7 +45,7 @@ class FlGrpcServer(FL_GrpcServicer):
         return data_upd, clipping_bound
 
     def start(self):
-        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), options=self.config.grpc_options)
+        server = grpc.server(futures.ThreadPoolExecutor(max_workers=config.num_workers), options=self.config.grpc_options)
         add_FL_GrpcServicer_to_server(self, server)
 
         target = self.address + ":" + str(self.port)
