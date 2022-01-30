@@ -33,28 +33,14 @@ class ClearDenseClient(WorkerBaseInfer):
         '''
         To clip the input gradient, if its norm is larger than the setting
         '''
-
         if self.dpoff: # don't clip
             return np.array(input_gradients), 1
-        # else: do clipping+noising
-
         gradients = np.array(input_gradients) # list to numpy.ndarray
-
-        # --- adaptive noise calculation ---
-        if self.grad_noise_sigma==0:
-            grad_noise = 0
-            b_noise = 0
-        else: 
-            grad_noise_std = self.grad_noise_sigma * self.clippingBound # deviation for gradients
-            b_noise = np.random.normal(0, self.b_noise_std)/self.clients_per_round
-            grad_noise = np.random.normal(0, grad_noise_std, size=gradients.shape)/self.clients_per_round
-        # --- adaptive noise calculation ---
-        
         norm = np.linalg.norm(gradients)        
         if norm > self.clippingBound:
-            return gradients * self.clippingBound/np.linalg.norm(gradients) + grad_noise, 0 + b_noise
+            return gradients * self.clippingBound/np.linalg.norm(gradients), 0
         else:
-            return gradients + grad_noise, 1 + b_noise
+            return gradients, 1
 
     def update(self):
         # clipping gradients before upload to the server
