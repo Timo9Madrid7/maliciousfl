@@ -1,23 +1,18 @@
-import logging
-# from logging import config
-import random
-# from select import select
+# Utils
+from Common.Utils.evaluate import evaluate_accuracy
+
+# Other Libs 
+from sklearn.metrics.pairwise import pairwise_distances
 import torch
 import numpy as np
 import time
 import copy
-import itertools
 from abc import ABCMeta, abstractmethod
-
-# from torch.optim import optimizer
-from sklearn.metrics.pairwise import pairwise_distances
-
-from Common.Utils.evaluate import evaluate_accuracy
-#uploading gradients
+import logging
 logger = logging.getLogger('client.workerbase')
 
 '''
-This is the worker for sharing the local gradients.
+This is the worker for sharing the local weights' differences.
 '''
 class WorkerBase(metaclass=ABCMeta):
     def __init__(

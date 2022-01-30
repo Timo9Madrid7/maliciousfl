@@ -1,20 +1,20 @@
-from concurrent.futures import thread
-from tabnanny import verbose
-from Common.Node.workerbase_v3 import WorkerBase as WorkerBaseDitto
-from Common.Grpc.fl_grpc_pb2 import GradRequest_Clipping
-import torch
-from torch import nn
-
-import Common.config as config
-
-from Common.Model.LeNet import LeNet
-from Common.Model.ResNet import ResNet, BasicBlock
-from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, load_data_dittoEval_mnist, load_data_dpclient_mnist
-from Common.Utils.set_log import setup_logging
-from Common.Utils.options import args_parser
+# GRPC 
 import grpc
 from Common.Grpc.fl_grpc_pb2_grpc import FL_GrpcStub
+from Common.Grpc.fl_grpc_pb2 import GradRequest_Clipping
 
+# Utils
+from Common.Node.workerbase_v3 import WorkerBase as WorkerBaseDitto
+from Common.Model.LeNet import LeNet
+from Common.Utils.data_loader import load_data_noniid_mnist, load_data_dittoEval_mnist
+from Common.Utils.set_log import setup_logging
+from Common.Utils.options import args_parser
+
+# Settings
+import Common.config as config
+
+# Other Libs
+import torch
 import numpy as np 
 
 # OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     model = LeNet().to(device)
     model.load_state_dict(torch.load(PATH))
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
-    loss_func = nn.CrossEntropyLoss()
+    loss_func = torch.nn.CrossEntropyLoss()
     clippingBound = config.initClippingBound
 
     # server settings

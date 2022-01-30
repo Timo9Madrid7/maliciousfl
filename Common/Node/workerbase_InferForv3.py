@@ -1,13 +1,13 @@
-from copy import deepcopy
-import logging
+# Utils
+from Common.Model.Generator import Generator
+
+# Other Libs
 import numpy as np
 import torch
 import copy
-from abc import ABCMeta, abstractmethod
-
-from Common.Model.Generator import Generator
 from scipy import special
-
+from abc import ABCMeta, abstractmethod
+import logging
 logger = logging.getLogger('client.workerbase')
 
 class WorkerBase(metaclass=ABCMeta):

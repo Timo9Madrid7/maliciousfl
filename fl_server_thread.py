@@ -1,15 +1,18 @@
+# GRPC
 from Common.Server.fl_grpc_server_adaclipping import FlGrpcServer as FLGrpcClipServer
 from Common.Grpc.fl_grpc_pb2 import GradResponse_Clipping
 from Common.Handler.handler import Handler
 
-import numpy as np
-import hdbscan
-from sklearn.metrics.pairwise import pairwise_distances
-
-import Common.config as config
-from Common.Utils.gradients_recorder import detect_GAN_raw, save_distance_matrix
+# Utils
 from Common.Utils.gaussian_moments_account import AutoDP_epsilon, acc_track_eps
 
+# Settings
+import Common.config as config
+
+# Other Libs
+from sklearn.metrics.pairwise import pairwise_distances
+import hdbscan
+import numpy as np
 import warnings 
 warnings.filterwarnings("ignore", message="invalid value encountered in double_scalars")
 

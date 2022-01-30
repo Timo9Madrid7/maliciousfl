@@ -1,20 +1,23 @@
-import torch
-from torch import nn
+# GRPC
 import grpc
-import numpy as np
-
-from Common.Node.workerbase_InferForv3 import WorkerBase as WorkerBaseInfer
+from Common.Grpc.fl_grpc_pb2_grpc import FL_GrpcStub
 from Common.Grpc.fl_grpc_pb2 import GradRequest_Clipping
+
+# Utils 
+from Common.Node.workerbase_InferForv3 import WorkerBase as WorkerBaseInfer
 from Common.Model.LeNet import LeNet
-from Common.Utils.data_loader import load_data_fmnist, load_data_cifar10, load_data_mnist
+from Common.Utils.data_loader import load_data_mnist
 from Common.Utils.set_log import setup_logging
 from Common.Utils.options import args_parser
-from Common.Grpc.fl_grpc_pb2_grpc import FL_GrpcStub
+
+# Settings
 import Common.config as config
 
-# OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized
+# Other Libs
+import torch
+import numpy as np
 import os
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ['KMP_DUPLICATE_LIB_OK']='True' # OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized
 
 class ClearDenseClient(WorkerBaseInfer):
     def __init__(self, client_id, model, loss_func, train_iter, test_iter, config, optimizer, device, grad_stub):
@@ -70,7 +73,7 @@ if __name__ == '__main__':
     #model = ResNet(BasicBlock, [3,3,3]).to(device)
     model.load_state_dict(torch.load(PATH))
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    loss_func = nn.CrossEntropyLoss()
+    loss_func = torch.nn.CrossEntropyLoss()
 
     train_iter, test_iter = load_data_mnist(id=args.id, batch = args.batch_size, path = args.path), None
 
