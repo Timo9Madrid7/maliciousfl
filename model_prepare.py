@@ -4,6 +4,7 @@ from Common.Utils.data_loader import load_data_mnist
 from Common import config
 import torch
 import torchvision.models as models
+import os
 
 
 
@@ -14,6 +15,8 @@ model = LeNet()
 #model = ResNet(BasicBlock, [3,3,3])
 torch.save(model.state_dict(), PATH)
 
+if not os.path.exists('./Model/Local_Models'):
+    os.makedirs('./Model/Local_Models')
 for i in range(config.total_number_clients):
     torch.save(model.state_dict(), config.local_models_path+str(i))
 
