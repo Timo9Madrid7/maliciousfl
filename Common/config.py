@@ -1,4 +1,4 @@
-num_epochs = 31
+num_epochs = 51
 total_number_clients = 200
 num_workers = 20
 
