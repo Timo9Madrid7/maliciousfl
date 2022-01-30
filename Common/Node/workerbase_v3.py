@@ -13,7 +13,6 @@ from abc import ABCMeta, abstractmethod
 from sklearn.metrics.pairwise import pairwise_distances
 
 from Common.Utils.evaluate import evaluate_accuracy
-from Common.config import _dpin, _dpclient, _dprecord, _noniid
 #uploading gradients
 logger = logging.getLogger('client.workerbase')
 
@@ -21,28 +20,18 @@ logger = logging.getLogger('client.workerbase')
 This is the worker for sharing the local gradients.
 '''
 class WorkerBase(metaclass=ABCMeta):
-    def __init__(self, thread_id, test_iter, train_iter_loader, dittoEval_loader, different_client_loader, model, loss_func, config, device, optimizer):
+    def __init__(
+        self, 
+        client_id, train_iter, eval_iter,
+        model, loss_func, optimizer,
+        config, device):
+
         # input data:
-        self.thread_id = thread_id
-        self.train_iter_loader = train_iter_loader
-        self.train_iter = None
-        self.test_iter = test_iter
-        self.dittoEval_loader = dittoEval_loader
-        self.local_test_iter = None
-        self.different_client_loader = different_client_loader
-        self.client = ""
-
-        # training client
-        if _noniid:
-            self.clients_index = []
-            for i in itertools.combinations(range(0,10),7):
-                self.clients_index.append(''.join(str(j) for j in i))
-        else:
-            self.clients_index = list(str(i) for i in range(config.total_number_clients))
-
-        # dp test acc record
-        self.acc_dp = []
-        self.dpclient_iter = self.different_client_loader(_dpclient, noniid=_noniid)
+        self.client_id = client_id
+        self.train_iter = train_iter
+        self.eval_iter = eval_iter
+        self.device = device
+        self.config = config
     
         # global model parameters:
         self.model = model
@@ -51,8 +40,7 @@ class WorkerBase(metaclass=ABCMeta):
         self._gradients = None          # not really gradients, but weights difference in one epoch
         self._weight_prev = None        # weights before this epoch
         self._weight_cur = None         # weights after this epoch
-        self._gradients_list = []
-        self.global_lambda = 0 # similarity: global to local
+        self.global_lambda = self.config.global_lambda
 
         # local model parameters:
         self.local_model = copy.deepcopy(self.model)
@@ -62,15 +50,12 @@ class WorkerBase(metaclass=ABCMeta):
         self.local_minlambda = config.minLambda
         self.local_maxlambda = config.maxLambda
         self.local_lambda = self.local_minlambda # similarity: local to global
+        self.local_models_path = self.config.local_models_path
 
         # common parameters:
         self._level_length = [0]
         for param in self.model.parameters():
             self._level_length.append(param.data.numel() + self._level_length[-1])
-
-        # other setting:
-        self.config = config
-        self.device = device
         
     def get_gradients(self):
         """ getting gradients """
@@ -80,17 +65,14 @@ class WorkerBase(metaclass=ABCMeta):
         """ setting gradients """
         self._gradients = gradients
 
-    def get_weights(self):
+    def get_weights(self, model="global"):
         """ getting weights per layer"""
+        if model == "local":
+            model_paramters = self.local_model.parameters()
+        else:
+            model_paramters = self.model.parameters()
         weights = []
-        for param in self.model.parameters():
-            weights.append(param.data)
-        return copy.deepcopy(weights)
-
-    def get_local_weights(self):
-        """ getting local weights per layer"""
-        weights = []
-        for param in self.local_model.parameters():
+        for param in model_paramters:
             weights.append(param.data)
         return copy.deepcopy(weights)
 
@@ -103,16 +85,16 @@ class WorkerBase(metaclass=ABCMeta):
 
     def upgrade(self):
         """ Use the processed gradient to update the weights """
-        idx = 0
+        layer = 0
         for param in self.model.parameters():
-            tmp = self._gradients[self._level_length[idx]:self._level_length[idx + 1]]
+            tmp = self._gradients[self._level_length[layer]:self._level_length[layer + 1]]
             diff = torch.tensor(tmp, device=self.device).view(param.data.size())
-            param.data = self._weight_prev[idx] + diff
-            idx += 1
+            param.data = self._weight_prev[layer] + diff
+            layer += 1
 
-    def adaptive_ditto(self, return_acc, local_acc):
+    def adaptive_ditto(self, return_acc, local_acc, threshold=0.05):
         self.local_lambda = min(
-            max(self.local_minlambda, self.local_lambda + (return_acc - local_acc - self.local_minlambda)), 
+            max(self.local_minlambda, self.local_lambda + (return_acc - local_acc - threshold)), 
             self.local_maxlambda
         )
     
@@ -152,79 +134,52 @@ class WorkerBase(metaclass=ABCMeta):
             layer += 1
         self.local_optimizer.step()
 
-    def select_client(self):
-        id = random.randint(0, self.config.total_number_clients-1)
-        with open("./Model/Local_Models/LeNet_"+str(id), 'rb') as f:
-            self.local_model.load_state_dict(torch.load(f)) 
-        _client = self.clients_index[id]
-        if _dpin and _client == _dpclient:
-            self.train_iter = self.different_client_loader(_client, noniid=_noniid)
-        else:
-            self.train_iter = self.train_iter_loader(_client, noniid=_noniid)
-        self.local_test_iter = self.dittoEval_loader(_client, noniid=_noniid)
-    
-        return _client, id
+    def upgrade_local(self):
+        torch.save(self.local_model.state_dict(), self.local_models_path+self.client_id)
 
-    def upgrade_local(self, id):
-        torch.save(self.local_model.state_dict(), "./Model/Local_Models/LeNet_"+str(id))
-
-    def fl_train(self):
-        for epoch in range(self.config.num_epochs): # number of total epochs 
-            # randomly pick up a client from non iid data set
-            # if _dpin is true, client [may] select that dpclient
-            self.client, model_id = self.select_client()
+    def fl_train(self, local_epoch=1, verbose=False):
+        
+        self.local_model.load_state_dict(torch.load(self.local_models_path+self.client_id))
+        for epoch in range(local_epoch): # number of local epochs 
             
             # retrieve weights from the global model
-            self._weight_prev, batch_count, start = self.get_weights(), 0, time.time()
+            self._weight_prev = self.get_weights(model="global")
             # retrieve local weights from the local model
-            self._weight_local = self.get_local_weights()
-            if epoch > int(self.config.num_epochs/2): #(!issue)
-            # global model only learns from the local when local accuracy is acceptable
-                self.global_lambda = self.config.global_lambda
-
-            if self.thread_id == 0: # thread_0 responds for recording
-                self.acc_dp.append(evaluate_accuracy(self.dpclient_iter, self.model))
+            self._weight_local = self.get_weights(model="local")
 
             # ditto reference accuracy
-            return_acc = evaluate_accuracy(self.local_test_iter, self.model)
+            return_acc = evaluate_accuracy(self.eval_iter, self.model)
             lambda_list = [self.local_lambda]
 
             # global & local models training
+            batch_count, start = 0, time.time()
             for X, y in self.train_iter:
                 batch_count += 1
                 
                 # training
                 self.train_step(X, y)
-                # evaluation
-                local_test_acc = evaluate_accuracy(self.local_test_iter, self.local_model)
-                # adjust the local-global distance
+
+                # adjusting ditto lambda
+                local_test_acc = evaluate_accuracy(self.eval_iter, self.local_model)
                 self.adaptive_ditto(return_acc, local_test_acc)
-                # record the lambda
                 lambda_list.append(self.local_lambda)
 
-                # verbose at last, thread_0 responds for recording
-                if batch_count == len(self.train_iter) and self.thread_id == 0:
-                    test_acc = evaluate_accuracy(self.test_iter, self.model)
-                    print(
-                        "epoch: %d | local_acc: %.3f | global_acc: %.3f | Ditto: L %.3f, G %.3f | time: %.2f | client: %s"
-                        %(epoch, local_test_acc, test_acc, np.mean(lambda_list), self.global_lambda, time.time() - start, self.client)
-                    )
-                    # l2_distance, cos_distance = self.show_similarity()
-                    # print(" | l2: %.3f | cosine: %.3f | multi: %.3f"%(l2_distance, cos_distance, l2_distance*cos_distance))
+            if verbose:
+                print(
+                    "client_id: %s | local_acc: %.3f | refer_acc: %.3f (local_test_set) | Ditto: L %.3f, G %.3f | time: %.2f"
+                    %(self.client_id, local_test_acc, return_acc, np.mean(lambda_list), self.global_lambda, time.time() - start)
+                )
             
             # global model update
-            self._weight_cur = self.get_weights()
+            self._weight_cur = self.get_weights(model="global")
             self.calculate_weights_difference()
-            self.update(model_id=model_id)
+            clip_bound = self.update()
             self.upgrade()
-            # local model update
-            self.upgrade_local(id=model_id)
-            
-        if _dprecord and self.acc_dp != []:
-            self.write_dp_acc_record()
 
-    def write_dp_acc_record(self):
-        np.savetxt("./Eva/dp_test_acc/dpclient_"+_dpclient+".txt", self.acc_dp)
+            # local model update
+            self.upgrade_local()
+
+            return clip_bound
 
     def show_similarity(self):
         """this function is only used for debugging"""
@@ -239,6 +194,6 @@ class WorkerBase(metaclass=ABCMeta):
         return l2.item(), cos.item()
 
     @abstractmethod
-    def update(self, model_id):
+    def update(self):
         pass
 
