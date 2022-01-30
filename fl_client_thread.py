@@ -1,4 +1,5 @@
-# from Common.Node.workerbaseDitto_FedAvg import WorkerBase as WorkerBaseDitto
+from concurrent.futures import thread
+from tabnanny import verbose
 from Common.Node.workerbase_v3 import WorkerBase as WorkerBaseDitto
 from Common.Grpc.fl_grpc_pb2 import GradRequest_Clipping
 import torch
@@ -21,14 +22,16 @@ import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 class ClearDenseClient(WorkerBaseDitto):
-    def __init__(self, thread_id, test_iter, train_iter_loader, dittoEval_loader, different_client_loader, model, loss_func, config, optimizer, device, grad_stub):
-        super(ClearDenseClient, self).__init__(thread_id = thread_id, 
-        test_iter=test_iter, train_iter_loader=train_iter_loader, dittoEval_loader=dittoEval_loader, different_client_loader=different_client_loader,
-        model=model, loss_func=loss_func, config=config, optimizer=optimizer, device=device)
-        self.grad_stub = grad_stub # communication channel
-        
+    def __init__(
+        self, thread_id, client_id, train_iter, eval_iter, 
+        model, loss_func, optimizer, config, device, grad_stub,
+        clippingBound):
+        super().__init__(client_id, train_iter, eval_iter, model, loss_func, optimizer, config, device)
+        self.grad_stub = grad_stub
+
+        self.thread_id = thread_id
         self.dpoff = self.config._dpoff
-        self.clippingBound = self.config.initClippingBound # initial clipping bound for a client
+        self.clippingBound = clippingBound # initial clipping bound for a client
         self.grad_noise_sigma = self.config.grad_noise_sigma
         self.b_noise_std = self.config.b_noise_std
         self.clients_per_round = self.config.num_workers
@@ -54,13 +57,13 @@ class ClearDenseClient(WorkerBaseDitto):
             grad_noise = np.random.normal(0, grad_noise_std, size=gradients.shape)/self.clients_per_round
         # --- adaptive noise calculation ---
            
-        norm = np.linalg.norm(gradients)        
+        norm = np.linalg.norm(gradients)
         if norm > self.clippingBound:
             return gradients * self.clippingBound/np.linalg.norm(gradients) + grad_noise, 0 + b_noise
         else:
             return gradients + grad_noise, 1 + b_noise
 
-    def update(self, model_id):
+    def update(self):
         # clipping gradients before upload to the server
         gradients, b = self.adaptiveClipping(super().get_gradients())
 
@@ -72,12 +75,11 @@ class ClearDenseClient(WorkerBaseDitto):
         # update the clipping bound for the next round
         self.clippingBound = res_grad_upd.result().b
 
+        return self.clippingBound
 
 if __name__ == '__main__':
 
     args = args_parser() # load setting
-
-    # only cpu used here
     device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
 
     yaml_path = 'Log/log.yaml'
@@ -87,36 +89,39 @@ if __name__ == '__main__':
     PATH = './Model/LeNet'
     model = LeNet().to(device)
     model.load_state_dict(torch.load(PATH))
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam(model.parameters(), args.lr)
     loss_func = nn.CrossEntropyLoss()
+    clippingBound = config.initClippingBound
 
     # server settings
     server_grad = config.server1_address + ":" + str(config.port1)
-
-    # client settings
-    if args.id == 0:
-        _, test_iter = load_data_mnist(args.id, batch=128, path="./Data/MNIST/")
-    else: 
-        test_iter = None
-    
 
     with grpc.insecure_channel(server_grad, options=config.grpc_options) as grad_channel:
         print("thread [%d]-%s: connect success!"%(args.id, device))
         grad_stub = FL_GrpcStub(grad_channel)
 
-        client = ClearDenseClient(
-            thread_id=args.id, 
-            test_iter = test_iter,
-            train_iter_loader = load_data_noniid_mnist,
-            dittoEval_loader = load_data_dittoEval_mnist,
-            different_client_loader = load_data_dpclient_mnist,
-            model=model, 
-            loss_func=loss_func,  
-            config=config, 
-            optimizer=optimizer, 
-            device=device, 
-            grad_stub=grad_stub
-        )
+        for epoch in range(config.num_epochs):
+            client_id = str(np.random.randint(0,120))
+            train_iter = load_data_noniid_mnist(client_id, noniid=False)
+            eval_iter = load_data_dittoEval_mnist(client_id, noniid=False)
 
-        client.fl_train()
-        # client.write_acc_record(fpath="Eva/comb_test.txt", info="clear_round")
+            client = ClearDenseClient(
+                thread_id=args.id,
+                client_id=client_id,
+                train_iter=train_iter,
+                eval_iter=eval_iter,
+                model=model,
+                loss_func=loss_func,
+                optimizer=optimizer,
+                config=config,
+                device=device,
+                grad_stub=grad_stub,
+                clippingBound=clippingBound
+            )
+            if args.id == 0:
+                verbose = True
+                print("epoch: %d | "%epoch, end="")
+            else:
+                verbose = False
+
+            clippingBound = client.fl_train(local_epoch=5, verbose=verbose)

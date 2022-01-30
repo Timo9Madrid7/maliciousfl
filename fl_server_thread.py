@@ -28,24 +28,25 @@ class ClearDenseServer(FLGrpcClipServer):
     def UpdateGrad_Clipping(self, request, context):
         data_dict = {request.id: request.grad_ori}
         b_list = [request.b]
-        print(data_dict.keys(), np.round(b_list,4), 'clip_b:', np.round(self.clippingBound,4))
+        # print(data_dict.keys(), np.round(b_list,4), 'clip_b:', np.round(self.clippingBound,4))
         rst, self.clippingBound = super().process(dict_data=data_dict, b=b_list, handler=self.handler.computation, clippingBound=self.clippingBound)
+        
         return GradResponse_Clipping(b=self.clippingBound, grad_upd=rst)
-
 
 class AvgGradientHandler(Handler):
     def __init__(self, config):
         super(AvgGradientHandler, self).__init__()
         self.config = config
-        self.total_number = config.total_number_clients # the total number of clients
+        self.total_number = config.total_number_clients
         self.dpoff = self.config._dpoff
-        self.clippingBound = self.config.initClippingBound # initial clipping bound for a client
         self.grad_noise_sigma = self.config.grad_noise_sigma
         self.b_noise_std = self.config.b_noise_std
         self.delta = self.config.delta
         self.clients_per_round = self.config.num_workers
         self.account_method = self.config.account_method
         self.acc_params = []
+
+        self.grad_prev = np.array([])
 
         self.cluster = hdbscan.HDBSCAN(
             metric='l2', 
@@ -56,7 +57,10 @@ class AvgGradientHandler(Handler):
         )
         
         # moments_account:
-        self.sigma = (self.grad_noise_sigma**(-2) + (2*self.b_noise_std)**(-2))**(-0.5)
+        if self.grad_noise_sigma:
+            self.sigma = (self.grad_noise_sigma**(-2) + (2*self.b_noise_std)**(-2))**(-0.5)
+        else:
+            self.sigma = None
         self.track_eps = AutoDP_epsilon(self.delta)
 
     def computation(self, data_in, b_in:list, S, gamma, blr):
@@ -91,20 +95,21 @@ class AvgGradientHandler(Handler):
             S = np.inf
             print("used id: ", bengin_id)
         else:
-            extra_grad_noise_std = self.grad_noise_sigma * self.clippingBound * np.sqrt(1-len(bengin_id)/self.clients_per_round)
+            extra_grad_noise_std = self.grad_noise_sigma * S * np.sqrt(1-len(bengin_id)/self.clients_per_round)
             extra_b_noise_std = self.b_noise_std * np.sqrt(1-len(bengin_id)/self.clients_per_round)
             noise_compensatory_grad = np.random.normal(0, extra_grad_noise_std, size=grad_in.shape[1])
             noise_compensatory_b = np.random.normal(0, extra_b_noise_std)
             
-            if self.account_method == "googleTF": # Gaussian Moments Accountant
-                self.acc_params.append((len(bengin_id)/self.total_number, self.sigma, 1))
-                cur_eps, cur_delta = acc_track_eps(self.acc_params, delta=config.delta)
-            elif self.account_method == "autodp": # Renyi Differential Privacy
-                self.track_eps.update_mech(len(bengin_id)/self.total_number, self.sigma, 1)
-                cur_eps, cur_delta = self.track_eps.get_epsilon(), config.delta
-
-            print("epsilon: %.2f | delta: %.6f | used id: "%(cur_eps, cur_delta), bengin_id)
-
+            if self.sigma != None:
+                if self.account_method == "googleTF": # Gaussian Moments Accountant
+                    self.acc_params.append((len(bengin_id)/self.total_number, self.sigma, 1))
+                    cur_eps, cur_delta = acc_track_eps(self.acc_params, delta=config.delta)
+                elif self.account_method == "autodp": # Renyi Differential Privacy
+                    self.track_eps.update_mech(len(bengin_id)/self.total_number, self.sigma, 1)
+                    cur_eps, cur_delta = self.track_eps.get_epsilon(), config.delta
+                print("epsilon: %.2f | delta: %.6f | "%(cur_eps, cur_delta), end="")
+            print("clip_bound: %.3f | used id: "%S, bengin_id)
+            
             # gradients average
             grad_in = (grad_in[bengin_id].sum(axis=0) + noise_compensatory_grad) / len(bengin_id)
             # post-processing
