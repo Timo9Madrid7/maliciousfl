@@ -137,6 +137,6 @@ if __name__ == "__main__":
 
     clear_server = ClearDenseServer(address=config.server1_address, port=config.port1, config=config,
                                     handler=gradient_handler)
-    print('lambda:', config.coef, '| dpoff:', config._dpoff, '| b_noise_std:', config.b_noise_std, 
-        '| clip_ratio:', config.gamma, '| grad_noise_sigma:', config.grad_noise_sigma, '| dp_in:', config._dpin)
+    print('ratio %d/%d:'%(config.num_workers, config.total_number_clients), '| lambda:', config.coef, '| dpoff:', config._dpoff, 
+    '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma, '| grad_noise_sigma:', config.grad_noise_sigma, '| dp_in:', config._dpin)
     clear_server.start()
