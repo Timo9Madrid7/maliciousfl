@@ -1,4 +1,4 @@
-num_epochs = 11
+num_epochs = 21
 total_number_clients = 120
 num_workers = 10
 
@@ -31,8 +31,10 @@ llr = 0.1 # local learning rate
 # adaptive Ditto parameters
 minLambda = 0.05
 maxLambda = 2.00
+local_models_path = "./Model/Local_Models/LeNet_"
 # global Ditto parameters
 global_lambda = 0
+global_models_path = "./Model/LeNet"
 
 # adaptive clipping parameters
 initClippingBound = 10 # initial clipping bound
@@ -40,7 +42,7 @@ beta = 0.1 # last round gradient weight
 blr = 0.5 # clipping bound learning rate
 gamma = 0.5 # non-clipping ratio {0.1, 0.3, 0.5, 0.7, 0.9}
 # b_noise = num_workers/20 # noise standard deviation added to counts (from server side)
-b_noise_std = 5 # (from client side) [1.7823 ~ (e,10^-5)DP]
+b_noise_std = 4 # (from client side) [1.7823 ~ (e,10^-5)DP]
 grad_noise_sigma = 1.005 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters
