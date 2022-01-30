@@ -87,7 +87,7 @@ class WorkerBase(metaclass=ABCMeta):
             param.data = self._weight_prev[layer] + diff
             layer += 1
 
-    def adaptive_ditto(self, return_acc, local_acc, threshold=0.05, lr=0.5):
+    def adaptive_ditto(self, return_acc, local_acc, threshold=0.05, lr=1):
         self.local_lambda = min(
             max(self.local_minlambda, self.local_lambda + lr * (return_acc - local_acc - threshold)), 
             self.local_maxlambda
@@ -133,28 +133,24 @@ class WorkerBase(metaclass=ABCMeta):
         torch.save(self.local_model.state_dict(), self.local_models_path+self.client_id)
 
     def fl_train(self, local_epoch=1, verbose=False):
-        
+
         self.local_model.load_state_dict(torch.load(self.local_models_path+self.client_id))
         # retrieve weights from the global model
         self._weight_prev = self.get_weights(model="global")
-        
-        for epoch in range(local_epoch): # number of local epochs 
+        # ditto reference accuracy
+        return_acc = evaluate_accuracy(self.eval_iter, self.model)
+        lambda_list = [self.local_lambda]
 
+        batch_count, start = 0, time.time()
+        for epoch in range(local_epoch): # number of local epochs 
             # retrieve local weights from the local model
             self._weight_local = self.get_weights(model="local")
 
-            # ditto reference accuracy
-            return_acc = evaluate_accuracy(self.eval_iter, self.model)
-            lambda_list = [self.local_lambda]
-
             # global & local models training
-            batch_count, start = 0, time.time()
             for X, y in self.train_iter:
                 batch_count += 1
-                
                 # training
                 self.train_step(X, y)
-
                 # adjusting ditto lambda
                 local_test_acc = evaluate_accuracy(self.eval_iter, self.local_model)
                 self.adaptive_ditto(return_acc, local_test_acc)
