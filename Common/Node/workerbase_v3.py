@@ -140,10 +140,11 @@ class WorkerBase(metaclass=ABCMeta):
     def fl_train(self, local_epoch=1, verbose=False):
         
         self.local_model.load_state_dict(torch.load(self.local_models_path+self.client_id))
+        # retrieve weights from the global model
+        self._weight_prev = self.get_weights(model="global")
+        
         for epoch in range(local_epoch): # number of local epochs 
-            
-            # retrieve weights from the global model
-            self._weight_prev = self.get_weights(model="global")
+
             # retrieve local weights from the local model
             self._weight_local = self.get_weights(model="local")
 
@@ -164,22 +165,22 @@ class WorkerBase(metaclass=ABCMeta):
                 self.adaptive_ditto(return_acc, local_test_acc)
                 lambda_list.append(self.local_lambda)
 
-            if verbose:
-                print(
-                    "client_id: %s | local_acc: %.3f | refer_acc: %.3f (local_test_set) | Ditto: L %.3f, G %.3f | time: %.2f"
-                    %(self.client_id, local_test_acc, return_acc, np.mean(lambda_list), self.global_lambda, time.time() - start)
-                )
+        if verbose:
+            print(
+                "client_id: %s | local_acc: %.3f | refer_acc: %.3f (local_test_set) | Ditto: L %.3f, G %.3f | time: %.2f"
+                %(self.client_id, local_test_acc, return_acc, np.mean(lambda_list), self.global_lambda, time.time() - start)
+            )
             
-            # global model update
-            self._weight_cur = self.get_weights(model="global")
-            self.calculate_weights_difference()
-            clip_bound = self.update()
-            self.upgrade()
+        # global model update
+        self._weight_cur = self.get_weights(model="global")
+        self.calculate_weights_difference()
+        clip_bound = self.update()
+        self.upgrade()
 
-            # local model update
-            self.upgrade_local()
+        # local model update
+        self.upgrade_local()
 
-            return clip_bound
+        return clip_bound
 
     def show_similarity(self):
         """this function is only used for debugging"""
