@@ -25,10 +25,11 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 class ClearDenseClient(WorkerBaseDitto):
     def __init__(
         self, thread_id, client_id, train_iter, eval_iter, 
-        model, loss_func, optimizer, config, device, grad_stub,
-        clippingBound,
-        debug_test_iter):
-        super().__init__(client_id, train_iter, eval_iter, model, loss_func, optimizer, config, device)
+        model, loss_func, optimizer, 
+        local_model, local_loss_func, local_optimizer,
+        config, device, 
+        grad_stub, clippingBound, debug_test_iter):
+        super().__init__(client_id, train_iter, eval_iter, model, loss_func, optimizer, local_model, local_loss_func, local_optimizer, config, device)
         self.grad_stub = grad_stub
 
         self.thread_id = thread_id
@@ -84,6 +85,9 @@ class ClearDenseClient(WorkerBaseDitto):
     def evaluation(self):
         if self.thread_id == 0:
            return evaluate_accuracy(debug_test_iter, self.model)
+    
+    def upgrade_local(self):
+        torch.save(self.local_model.state_dict(), self.config.local_models_path+self.client_id)
         
 
 if __name__ == '__main__':
@@ -113,6 +117,10 @@ if __name__ == '__main__':
 
         for epoch in range(config.num_epochs):
             client_id = str(np.random.randint(0,config.total_number_clients))
+            local_model = LeNet().to(device)
+            local_model.load_state_dict(torch.load(config.local_models_path+client_id))
+            local_optimizer = torch.optim.Adam(local_model.parameters(), config.llr)
+            local_loss_func = torch.nn.CrossEntropyLoss()
             train_iter = load_data_noniid_mnist(client_id, noniid=False)
             eval_iter = load_data_dittoEval_mnist(client_id, noniid=False)
 
@@ -124,6 +132,9 @@ if __name__ == '__main__':
                 model=model,
                 loss_func=loss_func,
                 optimizer=optimizer,
+                local_model=local_model,
+                local_loss_func=local_loss_func,
+                local_optimizer=local_optimizer,
                 config=config,
                 device=device,
                 grad_stub=grad_stub,

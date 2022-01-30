@@ -19,6 +19,7 @@ class WorkerBase(metaclass=ABCMeta):
         self, 
         client_id, train_iter, eval_iter,
         model, loss_func, optimizer,
+        local_model, local_loss_func, local_optimizer,
         config, device):
 
         # input data:
@@ -38,14 +39,13 @@ class WorkerBase(metaclass=ABCMeta):
         self.global_lambda = self.config.global_lambda
 
         # local model parameters:
-        self.local_model = copy.deepcopy(self.model)
-        self.local_loss_func = torch.nn.CrossEntropyLoss()
-        self.local_optimizer = torch.optim.Adam(self.local_model.parameters(), config.llr)
+        self.local_model = local_model
+        self.local_loss_func = local_loss_func
+        self.local_optimizer = local_optimizer
         self._weight_local = None # weight paramters used for global model L2-norm
         self.local_minlambda = config.minLambda
         self.local_maxlambda = config.maxLambda
         self.local_lambda = self.local_minlambda # similarity: local to global
-        self.local_models_path = self.config.local_models_path
 
         # common parameters:
         self._level_length = [0]
@@ -129,12 +129,7 @@ class WorkerBase(metaclass=ABCMeta):
             layer += 1
         self.local_optimizer.step()
 
-    def upgrade_local(self):
-        torch.save(self.local_model.state_dict(), self.local_models_path+self.client_id)
-
     def fl_train(self, local_epoch=1, verbose=False):
-
-        self.local_model.load_state_dict(torch.load(self.local_models_path+self.client_id))
         # retrieve weights from the global model
         self._weight_prev = self.get_weights(model="global")
         # ditto reference accuracy
@@ -187,6 +182,10 @@ class WorkerBase(metaclass=ABCMeta):
 
     @abstractmethod
     def update(self):
+        pass
+
+    @abstractmethod
+    def upgrade_local(self):
         pass
 
     @abstractmethod
