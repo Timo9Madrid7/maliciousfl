@@ -42,6 +42,7 @@ class AvgGradientHandler(Handler):
         self.config = config
         self.total_number = config.total_number_clients
         self.dpoff = self.config._dpoff
+        self.dpcompen = self.config._dpcompen
         self.grad_noise_sigma = self.config.grad_noise_sigma
         self.b_noise_std = self.config.b_noise_std
         self.delta = self.config.delta
@@ -87,22 +88,27 @@ class AvgGradientHandler(Handler):
         if self.dpoff:
             # naive gradient average
             grad_in = grad_in[bengin_id].mean(axis=0)
-            S = np.inf
-            print("used id: ", bengin_id)
+            S = 0
+            print("clip_bound: inf | used id: ", bengin_id)
         else:
             # noise compensation
-            noise_compensatory_grad, noise_compensatory_b = self.dp_noise_compensator(
-                g_std=self.grad_noise_sigma * S,
-                g_shape=grad_in.shape[1],
-                b_std=self.b_noise_std,
-                num_used=len(bengin_id)
-            )
-            
+            if self.dpcompen:
+                noise_compensatory_grad, noise_compensatory_b = self.dp_noise_compensator(
+                    g_std=self.grad_noise_sigma * S,
+                    g_shape=grad_in.shape[1],
+                    b_std=self.b_noise_std,
+                    num_used=len(bengin_id)
+                )
+                sigma = self.sigma
+            else:
+                noise_compensatory_grad, noise_compensatory_b = 0, 0
+                sigma = self.sigma * np.sqrt(len(bengin_id)/self.clients_per_round)
+
             # moment accountant
             if self.sigma != None:
                 cur_eps, cur_delta = self.dp_budget_trace(
                     q=len(bengin_id)/self.total_number, 
-                    sigma=self.sigma, 
+                    sigma=sigma, 
                     account_method=self.account_method)
                 print("epsilon: %.2f | delta: %.6f | "%(cur_eps, cur_delta), end="")
             print("clip_bound: %.3f | used id: "%S, bengin_id)
@@ -114,6 +120,7 @@ class AvgGradientHandler(Handler):
             grad_in = self.post_clipping(grad_in, S)
 
             # adjustment of adaptive clipping
+            b_in = np.array(b_in)[bengin_id].tolist()
             S = self.adaptive_clipping(b_in, S, gamma, blr, noise_compensatory_b)
 
         return grad_in.tolist(), S
@@ -202,7 +209,7 @@ class AvgGradientHandler(Handler):
         """
         
         b_in = list(map(lambda x: max(0,x), b_in))
-        b_avg = (np.sum(b_in) + noise_compensatory_b) / self.clients_per_round
+        b_avg = (np.sum(b_in) + noise_compensatory_b) / len(b_in)
         clip_bound *= np.exp(-lr*(min(b_avg,1)-clip_ratio))
 
         return clip_bound
@@ -213,6 +220,6 @@ if __name__ == "__main__":
 
     clear_server = ClearDenseServer(address=config.server1_address, port=config.port1, config=config,
                                     handler=gradient_handler)
-    print('ratio %d/%d:'%(config.num_workers, config.total_number_clients), '| lambda:', config.coef, '| dpoff:', config._dpoff, 
-    '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma, '| grad_noise_sigma:', config.grad_noise_sigma, '| dp_in:', config._dpin)
+    print('ratio %d/%d:'%(config.num_workers, config.total_number_clients), '| dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen,
+    '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma, '| grad_noise_sigma:', config.grad_noise_sigma)
     clear_server.start()

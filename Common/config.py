@@ -26,7 +26,8 @@ mpc_grad_port = 50004
 grpc_options = [('grpc.max_send_message_length', -1), ('grpc.max_receive_message_length', -1)]
 
 # Ditto parameters
-coef = 0.05 # local-global model lambda
+# !: coef is not called, used in previous versions
+# coef = 0.05 # local-global model lambda
 llr = 0.1 # local learning rate
 # adaptive Ditto parameters
 minLambda = 0.00
@@ -48,9 +49,12 @@ grad_noise_sigma = 1.005 # {0, 0.01, 0.03, 0.1} * num_workers
 # differential privacy parameters
 _noniid = False
 _dpoff = False
-_dprecord, _dpin, _dpclient = False, False, "0" #_dpin: whether _dpclient is involved in the training
+_dpcompen = False
+# TODO: differential privacy test has not been implemented in this version
+# _dprecord, _dpin, _dpclient = False, False, "0" #_dpin: whether _dpclient is involved in the training
 delta = 1e-4
 account_method = "autodp"
 
-# label flipping parameters
+# byzantine clients
 flipping_clients = []
+malicious_client = []

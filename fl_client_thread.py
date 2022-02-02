@@ -47,7 +47,7 @@ class ClearDenseClient(WorkerBaseDitto):
         '''
 
         if self.dpoff: # don't clip
-            return np.array(input_gradients), 1
+            return np.array(input_gradients).tolist(), 1
         # else: do clipping+noising
 
         gradients = np.array(input_gradients)
@@ -64,14 +64,13 @@ class ClearDenseClient(WorkerBaseDitto):
            
         norm = np.linalg.norm(gradients)
         if norm > self.clippingBound:
-            return gradients * self.clippingBound/np.linalg.norm(gradients) + grad_noise, 0 + b_noise
+            return (gradients * self.clippingBound/np.linalg.norm(gradients) + grad_noise).tolist(), 0 + b_noise
         else:
-            return gradients + grad_noise, 1 + b_noise
+            return (gradients + grad_noise).tolist(), 1 + b_noise
 
     def update(self):
         # clipping gradients before upload to the server
         gradients, b = self.adaptiveClipping(super().get_gradients())
-
         # upload local gradients and clipping indicator
         res_grad_upd = self.grad_stub.UpdateGrad_Clipping.future(GradRequest_Clipping(id=self.thread_id, b=b, grad_ori=gradients))
 
@@ -88,7 +87,16 @@ class ClearDenseClient(WorkerBaseDitto):
     
     def upgrade_local(self):
         torch.save(self.local_model.state_dict(), self.config.local_models_path+self.client_id)
-        
+    
+    def malicious_random_upload(self):
+        gradients,b = np.random.normal(self.clippingBound, 1, size=(44426,)), 1
+        if not self.dpoff:
+            gradients += np.random.normal(0, self.grad_noise_sigma*self.clippingBound/np.sqrt(self.clients_per_round), size=gradients.shape)
+            b += np.random.normal(0, self.b_noise_std/np.sqrt(self.clients_per_round))
+        gradients = gradients.tolist() 
+        res_grad_upd = self.grad_stub.UpdateGrad_Clipping.future(GradRequest_Clipping(id=self.thread_id, b=b, grad_ori=gradients))
+        self.clippingBound = res_grad_upd.result().b
+        return self.clippingBound
 
 if __name__ == '__main__':
 
@@ -121,8 +129,8 @@ if __name__ == '__main__':
             local_model.load_state_dict(torch.load(config.local_models_path+client_id))
             local_optimizer = torch.optim.Adam(local_model.parameters(), config.llr)
             local_loss_func = torch.nn.CrossEntropyLoss()
-            train_iter = load_data_noniid_mnist(client_id, noniid=False)
-            eval_iter = load_data_dittoEval_mnist(client_id, noniid=False)
+            train_iter = load_data_noniid_mnist(client_id, noniid=config._noniid)
+            eval_iter = load_data_dittoEval_mnist(client_id, noniid=config._noniid)
 
             client = ClearDenseClient(
                 thread_id=args.id,
@@ -147,4 +155,7 @@ if __name__ == '__main__':
             else:
                 verbose = False
 
-            clippingBound = client.fl_train(local_epoch=3, verbose=verbose)
+            if args.id in config.malicious_client:
+                clippingBound = client.malicious_random_upload()
+            else:
+                clippingBound = client.fl_train(local_epoch=3, verbose=verbose)
