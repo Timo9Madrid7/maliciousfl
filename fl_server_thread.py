@@ -67,69 +67,145 @@ class AvgGradientHandler(Handler):
         self.track_eps = AutoDP_epsilon(self.delta)
 
     def computation(self, data_in, b_in:list, S, gamma, blr):
-        # calculating adaptive noise
-        # grad_noise = (config.z_multiplier**(-2) - (2*config.b_noise)**(-2))**(-0.5) * S
+        """the averaging process of the aggregator
 
-        # average aggregator
+        Args:
+            data_in (list): collected gradients 
+            b_in (list): collected indicators
+            S (float): clipping boundary
+            gamma (float): clipping ratio
+            blr (float): adaptive clipping learning rate
+
+        Returns:
+            [list, float]: averaged gradients and next round clipping boundary
+        """
         grad_in = np.array(data_in).reshape((self.clients_per_round, -1))
-        # detect_GAN_raw("Eva/gradients/GANDetection/raw_data.txt", grad_in)
+        
+        # cosine distance filtering
+        bengin_id = self.cosine_distance_filter(grad_in)
 
-        # --- HDBScan Start --- #
+        if self.dpoff:
+            # naive gradient average
+            grad_in = grad_in[bengin_id].mean(axis=0)
+            S = np.inf
+            print("used id: ", bengin_id)
+        else:
+            # noise compensation
+            noise_compensatory_grad, noise_compensatory_b = self.dp_noise_compensator(
+                g_std=self.grad_noise_sigma * S,
+                g_shape=grad_in.shape[1],
+                b_std=self.b_noise_std,
+                num_used=len(bengin_id)
+            )
+            
+            # moment accountant
+            if self.sigma != None:
+                cur_eps, cur_delta = self.dp_budget_trace(
+                    q=len(bengin_id)/self.total_number, 
+                    sigma=self.sigma, 
+                    account_method=self.account_method)
+                print("epsilon: %.2f | delta: %.6f | "%(cur_eps, cur_delta), end="")
+            print("clip_bound: %.3f | used id: "%S, bengin_id)
+            
+            # gradients average
+            grad_in = (grad_in[bengin_id].sum(axis=0) + noise_compensatory_grad) / len(bengin_id)
+
+            # post-processing
+            grad_in = self.post_clipping(grad_in, S)
+
+            # adjustment of adaptive clipping
+            S = self.adaptive_clipping(b_in, S, gamma, blr, noise_compensatory_b)
+
+        return grad_in.tolist(), S
+
+
+    def cosine_distance_filter(self, grad_in):
+        """The HDBSCAN filter based on cosine distance
+
+        Args:
+            grad_in (list/np.ndarray): the raw input gradients/weight_diffs
+        """
         distance_matrix = pairwise_distances(grad_in-grad_in.mean(axis=0), metric='cosine')
-        # save_distance_matrix("Eva/distance_matrix/FedAVG_flipping.txt", distance_matrix)
         self.cluster.fit(distance_matrix)
         label = self.cluster.labels_
         if (label==-1).all():
             bengin_id = np.arange(self.clients_per_round).tolist()
         else:
             label_class, label_count = np.unique(label, return_counts=True)
-            # label = -1 are discarded, as they cannot be assigned to any clusters
             if -1 in label_class:
                 label_class, label_count = label_class[1:], label_count[1:]
             majority = label_class[np.argmax(label_count)]
             bengin_id = np.where(label==majority)[0].tolist()
-        # if 6 in bengin_id or 7 in bengin_id or 8 in bengin_id or 9 in bengin_id:
-        # if len(bengin_id) < 8:
-        #     np.save('../temp/grads_'+str(self.npy_num)+'npy', grad_in)
-        #     self.npy_num += 1
-        # --- HDBScan End --- #
-        if self.dpoff:
-            grad_in = grad_in[bengin_id].mean(axis=0)
-            S = np.inf
-            print("used id: ", bengin_id)
-        else:
-            extra_grad_noise_std = self.grad_noise_sigma * S * np.sqrt(1-len(bengin_id)/self.clients_per_round)
-            extra_b_noise_std = self.b_noise_std * np.sqrt(1-len(bengin_id)/self.clients_per_round)
-            noise_compensatory_grad = np.random.normal(0, extra_grad_noise_std, size=grad_in.shape[1])
-            noise_compensatory_b = np.random.normal(0, extra_b_noise_std)
-            
-            if self.sigma != None:
-                if self.account_method == "googleTF": # Gaussian Moments Accountant
-                    self.acc_params.append((len(bengin_id)/self.total_number, self.sigma, 1))
-                    cur_eps, cur_delta = acc_track_eps(self.acc_params, delta=config.delta)
-                elif self.account_method == "autodp": # Renyi Differential Privacy
-                    self.track_eps.update_mech(len(bengin_id)/self.total_number, self.sigma, 1)
-                    cur_eps, cur_delta = self.track_eps.get_epsilon(), config.delta
-                print("epsilon: %.2f | delta: %.6f | "%(cur_eps, cur_delta), end="")
-            print("clip_bound: %.3f | used id: "%S, bengin_id)
-            
-            # gradients average
-            grad_in = (grad_in[bengin_id].sum(axis=0) + noise_compensatory_grad) / len(bengin_id)
-            # post-processing
-            grad_in_l2_norm = np.linalg.norm(grad_in)
-            if grad_in_l2_norm > S: # clipping averaged gradients
-                grad_in *= S/grad_in_l2_norm
 
-            # adaptive clipping
-            b_in = list(map(lambda x: max(0,x), b_in))
-            b_avg = (np.sum(b_in) + noise_compensatory_b) / self.clients_per_round
-            S *= np.exp(-blr*(min(b_avg,1)-gamma))
+        return bengin_id
 
-        return grad_in.tolist(), S
+    def dp_noise_compensator(self, g_std, g_shape, b_std, num_used):
+        """to generate the compensatory Gaussian noise when the number of used clients 
+        is less than the selected number 
 
-        # --- TEST --- #
-        grad_in = np.array(data_in).reshape((self.num_workers, -1)).mean(axis=0)
-        return grad_in.tolist(), 1
+        Args:
+            g_std(float): the standard deviation of compensatroy gradient noise
+            g_shape (list/tuple): the shape of raw input gradients/weight_diffs
+            b_std(float): the standard deviation of compensatroy indicator noise
+            num_used (int): the number of used/benign clients
+        """
+
+        extra_grad_noise_std = g_std * np.sqrt(1-num_used/self.clients_per_round)
+        noise_compensatory_grad = np.random.normal(0, extra_grad_noise_std, size=g_shape)
+
+        extra_b_noise_std = b_std * np.sqrt(1-num_used/self.clients_per_round)
+        noise_compensatory_b = np.random.normal(0, extra_b_noise_std)
+
+        return noise_compensatory_grad, noise_compensatory_b
+    
+    def dp_budget_trace(self, q, sigma, account_method):
+        """to monitor the accountant for differential privacy budget  
+
+        Args:
+            q (float): the fraction of random selections used for this round
+            sigma (float): the gradient noise multiplier (std=sigma*clipping_boundary)
+            account_method (str): the method of accountant
+        """
+
+        if account_method == "googleTF": # Gaussian Moments Accountant
+            self.acc_params.append((q, sigma, 1))
+            cur_eps, cur_delta = acc_track_eps(self.acc_params, delta=config.delta)
+        elif account_method == "autodp": # Renyi Differential Privacy
+            self.track_eps.update_mech(q, sigma, 1)
+            cur_eps, cur_delta = self.track_eps.get_epsilon(), config.delta
+
+        return cur_eps, cur_delta
+
+    def post_clipping(self, grad_in, clip_bound):
+        """post processing clipping for averaged grad_in
+
+        Args:
+            grad_in (np.ndarray): the averaged grad_in
+            clip_bound (float): the current clipping boundary
+        """
+
+        grad_in_l2_norm = np.linalg.norm(grad_in)
+        if grad_in_l2_norm > clip_bound:
+            grad_in *= clip_bound/grad_in_l2_norm
+
+        return grad_in
+
+    def adaptive_clipping(self, b_in, clip_bound, clip_ratio, lr, noise_compensatory_b=0.):
+        """to adjust the clipping boundary for the next round according to the indicators
+
+        Args:
+            b_in (list): the list of indicators
+            clip_bound (float): the current clipping boundary
+            clip_ratio (float): the clipping ratio (a number between [0,1])
+            lr (float): the adaptive clipping learning rate
+            noise_compensatory_b (float, optional): noise compensation. Defaults to 0.
+        """
+        
+        b_in = list(map(lambda x: max(0,x), b_in))
+        b_avg = (np.sum(b_in) + noise_compensatory_b) / self.clients_per_round
+        clip_bound *= np.exp(-lr*(min(b_avg,1)-clip_ratio))
+
+        return clip_bound
 
 
 if __name__ == "__main__":
