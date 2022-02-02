@@ -114,7 +114,8 @@ if __name__ == '__main__':
     loss_func = torch.nn.CrossEntropyLoss()
     clippingBound = config.initClippingBound
 
-    debug_test_iter = load_all_test_mnist()
+    # debug_test_iter = load_all_test_mnist()
+    debug_test_iter = None
 
     # server settings
     server_grad = config.server1_address + ":" + str(config.port1)
