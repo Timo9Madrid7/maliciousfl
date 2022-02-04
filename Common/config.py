@@ -57,4 +57,9 @@ account_method = "autodp"
 
 # byzantine clients
 flipping_clients = []
-malicious_client = []
+malicious_client = [1,2]
+
+# deepsight
+# the number of parameters of an output layer neuron to neurons of the previous layer
+weight_index = 850
+bias_index = 10

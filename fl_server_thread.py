@@ -5,14 +5,19 @@ from Common.Handler.handler import Handler
 
 # Utils
 from Common.Utils.gaussian_moments_account import AutoDP_epsilon, acc_track_eps
+from Common.Utils.data_loader import load_all_test_mnist
+from Common.Utils.evaluate import evaluate_accuracy
+from Common.Model.LeNet import LeNet
 
 # Settings
 import Common.config as config
 
 # Other Libs
+import torch
 from sklearn.metrics.pairwise import pairwise_distances
 import hdbscan
 import numpy as np
+from copy import deepcopy
 import warnings 
 warnings.filterwarnings("ignore", message="invalid value encountered in double_scalars")
 
@@ -36,10 +41,18 @@ class ClearDenseServer(FLGrpcClipServer):
         
         return GradResponse_Clipping(b=self.clippingBound, grad_upd=rst)
 
+# TODO: to move Handler to Utils folder
 class AvgGradientHandler(Handler):
-    def __init__(self, config):
+    def __init__(self, config, model, device, test_iter):
         super(AvgGradientHandler, self).__init__()
         self.config = config
+        self.model = model 
+        self._level_length = [0]
+        for param in self.model.parameters():
+            self._level_length.append(param.data.numel() + self._level_length[-1])
+        self.device = device
+        self.test_iter = test_iter
+
         self.total_number = config.total_number_clients
         self.dpoff = self.config._dpoff
         self.dpcompen = self.config._dpcompen
@@ -48,9 +61,9 @@ class AvgGradientHandler(Handler):
         self.delta = self.config.delta
         self.clients_per_round = self.config.num_workers
         self.account_method = self.config.account_method
+        self.weight_index = self.config.weight_index
+        self.bias_index = self.config.bias_index
         self.acc_params = []
-
-        self.grad_prev = np.array([])
 
         self.cluster = hdbscan.HDBSCAN(
             metric='l2', 
@@ -81,9 +94,20 @@ class AvgGradientHandler(Handler):
             [list, float]: averaged gradients and next round clipping boundary
         """
         grad_in = np.array(data_in).reshape((self.clients_per_round, -1))
-        
+
         # cosine distance filtering
         bengin_id = self.cosine_distance_filter(grad_in)
+
+        # TODO: deepsight implementation
+        with open("./Eva/deepsight/grad_ly.txt", 'a') as f:
+            np.savetxt(f, grad_in[:,-850::])
+        neups = self.neups_metric(grad_in=grad_in)
+        with open("./Eva/deepsight/neups.txt", "a") as f:
+            np.savetxt(f, neups)
+        ddifs = self.ddifs_metric(grad_in=grad_in, samples_size=5000)
+        with open("./Eva/deepsight/ddifs.txt", "a") as f:
+            for ddifs_i in ddifs:
+                np.savetxt(f, np.array(ddifs_i))
 
         if self.dpoff:
             # naive gradient average
@@ -123,28 +147,31 @@ class AvgGradientHandler(Handler):
             b_in = np.array(b_in)[bengin_id].tolist()
             S = self.adaptive_clipping(b_in, S, gamma, blr, noise_compensatory_b)
 
-        return grad_in.tolist(), S
+        grad_in = grad_in.tolist()
+        self.upgrade(grad_in, self.model)
+        # ? only for debugging and experimental evaluation
+        print("current global model accuracy: %.3f"%evaluate_accuracy(self.test_iter, self.model))
+        return grad_in, S
 
 
     def cosine_distance_filter(self, grad_in):
         """The HDBSCAN filter based on cosine distance
 
         Args:
-            grad_in (list/np.ndarray): the raw input gradients/weight_diffs
+            grad_in (list/np.ndarray): the raw input weight_diffs
         """
         distance_matrix = pairwise_distances(grad_in-grad_in.mean(axis=0), metric='cosine')
-        self.cluster.fit(distance_matrix)
-        label = self.cluster.labels_
-        if (label==-1).all():
-            bengin_id = np.arange(self.clients_per_round).tolist()
-        else:
-            label_class, label_count = np.unique(label, return_counts=True)
-            if -1 in label_class:
-                label_class, label_count = label_class[1:], label_count[1:]
-            majority = label_class[np.argmax(label_count)]
-            bengin_id = np.where(label==majority)[0].tolist()
+        return self.hdbscan_filter(distance_matrix)
 
-        return bengin_id
+    def neups_filter(self, grad_in):
+        """The HDBSCAN filter based on NEUPS
+
+        Args:
+            grad_in (list/np.ndarray): the raw input weight_diffs
+        """
+
+        neups = self.neups_metric(grad_in-grad_in.mean(axis=0))
+        return self.hdbscan_filter(neups)
 
     def dp_noise_compensator(self, g_std, g_shape, b_std, num_used):
         """to generate the compensatory Gaussian noise when the number of used clients 
@@ -152,7 +179,7 @@ class AvgGradientHandler(Handler):
 
         Args:
             g_std(float): the standard deviation of compensatroy gradient noise
-            g_shape (list/tuple): the shape of raw input gradients/weight_diffs
+            g_shape (list/tuple): the shape of raw input weight_diffs
             b_std(float): the standard deviation of compensatroy indicator noise
             num_used (int): the number of used/benign clients
         """
@@ -214,9 +241,103 @@ class AvgGradientHandler(Handler):
 
         return clip_bound
 
+    def ddifs_metric(self, grad_in:np.ndarray, samples_size=20000):
+        """DDifs measures the difference of predicted scores between local update model 
+        and global model as they provide information about distribution of the training 
+        labels of the respective client
+
+        Args:
+            grad_in (np.ndarray): the raw input weight_diffs
+            samples_size (int, optional): the number of random samples. Defaults to 20000.
+
+        Returns:
+            [list]: the DDifs for 3 different seeds as a list of 3 lists 
+        """
+        
+        ddifs = []
+        for _ in range(3):
+            ddifs_i = []
+            random_samples = torch.randn(samples_size, 1, 28, 28)
+            for client_grad in grad_in:
+                temp_model = deepcopy(self.model)
+                self.upgrade(client_grad.tolist(), temp_model)
+                temp_output = temp_model.forward(random_samples).detach().cpu().data
+                model_output = self.model.forward(random_samples).detach().cpu().data
+                neuron_diff = torch.div(temp_output, model_output).sum(axis=0)/samples_size
+                ddifs_i.append(neuron_diff.numpy().tolist())
+            ddifs.append(ddifs_i)
+    
+        return ddifs
+
+    def neups_metric(self, grad_in:np.ndarray):
+        """NEUPs measures the magnitude changes of neurons in the last layer 
+        and use them to provide a rough estimation of the output labels for 
+        the training data of the individual client
+
+        Args:
+            grad_in (np.ndarray): the raw input weight_diffs
+
+        Returns:
+            [np.ndarray]: 2-dimession NormalizEd Energies UPdate for clients
+        """
+
+        neups = []
+        for client_grad in grad_in:
+            energy_weights = client_grad[-self.weight_index:-self.bias_index].reshape((self.bias_index,-1))
+            energy_bias = client_grad[-self.bias_index::]
+            energy_neuron = np.abs(energy_weights).sum(axis=1) + np.abs(energy_bias)
+            energy_neuron /= energy_neuron.sum()
+            neups.append(energy_neuron.tolist())
+
+        return np.array(neups)
+    
+    def tes_metric(self, neups):
+        """TEs analyzes the parameter updates of the output layer for a model
+        to measure the homogeneity of its training data
+
+        Args:
+            neups ([np.ndarray]): NormalizEd Energies UPdate
+
+        Returns:
+            [np.ndarray]: the number of threshold exceedings
+        """
+
+        tes = []
+        for client_neups in neups:
+            threshold = max(0.01,1/self.bias_index)*client_neups.max()
+            tes.append((client_neups>threshold).sum())
+
+        return tes
+
+    def hdbscan_filter(self, inputs):
+        self.cluster.fit(inputs)
+        label = self.cluster.labels_
+        if (label==-1).all():
+            bengin_id = np.arange(self.clients_per_round).tolist()
+        else:
+            label_class, label_count = np.unique(label, return_counts=True)
+            if -1 in label_class:
+                label_class, label_count = label_class[1:], label_count[1:]
+            majority = label_class[np.argmax(label_count)]
+            bengin_id = np.where(label==majority)[0].tolist()
+
+        return bengin_id
+    
+    def upgrade(self, grad_in:list, model):
+        layer = 0
+        for param in model.parameters():
+            layer_diff = grad_in[self._level_length[layer]:self._level_length[layer + 1]]
+            param.data += torch.tensor(layer_diff, device=self.device).view(param.data.size())
+            layer += 1
 
 if __name__ == "__main__":
-    gradient_handler = AvgGradientHandler(config=config)
+
+    device = torch.device('cpu' if torch.cuda.is_available() else 'cpu') 
+    model = LeNet().to(device)
+    model.load_state_dict(torch.load(config.global_models_path))
+    test_iter = load_all_test_mnist()
+
+    gradient_handler = AvgGradientHandler(config=config, model=model, device=device, test_iter=test_iter)
 
     clear_server = ClearDenseServer(address=config.server1_address, port=config.port1, config=config,
                                     handler=gradient_handler)
