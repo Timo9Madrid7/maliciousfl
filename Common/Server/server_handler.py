@@ -74,15 +74,15 @@ class AvgGradientHandler(Handler):
         bengin_id = self.cosine_distance_filter(grad_in)
 
         # TODO: deepsight implementation
-        with open("./Eva/deepsight/grad_ly.txt", 'a') as f:
-            np.savetxt(f, grad_in[:,-850::])
-        neups = self.neups_metric(grad_in=grad_in)
-        with open("./Eva/deepsight/neups.txt", "a") as f:
-            np.savetxt(f, neups)
-        ddifs = self.ddifs_metric(grad_in=grad_in, samples_size=5000)
-        with open("./Eva/deepsight/ddifs.txt", "a") as f:
-            for ddifs_i in ddifs:
-                np.savetxt(f, np.array(ddifs_i))
+        # with open("./Eva/deepsight/grad_ly.txt", 'a') as f:
+        #     np.savetxt(f, grad_in[:,-850::])
+        # neups = self.neups_metric(grad_in=grad_in)
+        # with open("./Eva/deepsight/neups.txt", "a") as f:
+        #     np.savetxt(f, neups)
+        # ddifs = self.ddifs_metric(grad_in=grad_in, samples_size=5000)
+        # with open("./Eva/deepsight/ddifs.txt", "a") as f:
+        #     for ddifs_i in ddifs:
+        #         np.savetxt(f, np.array(ddifs_i))
 
         if self.dpoff:
             # naive gradient average

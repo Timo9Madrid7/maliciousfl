@@ -1,6 +1,6 @@
-num_epochs = 15
+num_epochs = 51
 total_number_clients = 200
-num_workers = 10
+num_workers = 20
 
 idx_max_length = 50000
 grad_shift = 2 ** 20
@@ -48,7 +48,7 @@ grad_noise_sigma = 1.005 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters
 _noniid = False
-_dpoff = True
+_dpoff = False
 _dpcompen = False
 # TODO: differential privacy test has not been implemented in this version
 # _dprecord, _dpin, _dpclient = False, False, "0" #_dpin: whether _dpclient is involved in the training
@@ -57,7 +57,7 @@ account_method = "autodp"
 
 # byzantine clients
 flipping_clients = []
-malicious_client = [1,2]
+malicious_client = []
 
 # deepsight
 # the number of parameters of an output layer neuron to neurons of the previous layer

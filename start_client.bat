@@ -1,7 +1,7 @@
 @REM python clear_comb_client_FedAvg.py --id 1 | ^
 @REM python clear_comb_client_FedAvg.py --id 0
 
-for /l %%i in (1,1,9) do start /b python fl_client_thread.py --id %%i
+for /l %%i in (1,1,19) do start /b python fl_client_thread.py --id %%i
 python fl_client_thread.py --id 0
 rundll32 user32.dll,MessaeBeepg
 
