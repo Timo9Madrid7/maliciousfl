@@ -1,19 +1,22 @@
-from dataclasses import replace
 import torch 
 import torchvision
 import random
 import numpy as np
 
-class MNISTSplitter():
-    def __init__(self, path: str) -> None:
+class DataSplitter():
+    def __init__(self, path: str, dataset="MNIST") -> None:
         """
-        path: the path_dir to MNIST Data
+        path: the path_dir to the dataset
         """
         self.path = path 
         self.num_class = 10
-        self.mnist_train, self.mnist_test = self.load_trianTest_mnist()
+        self.data_train, self.data_test = None, None
+        if dataset == "MNIST":
+            self.data_train, self.data_test = self.load_trainTest_mnist()
+        elif dataset == "CIFAR10":
+            self.data_train, self.data_test = self.load_trainTest_cifar10()
     
-    def load_trianTest_mnist(self):
+    def load_trainTest_mnist(self):
         transforms = torchvision.transforms.Compose([
             torchvision.transforms.ToTensor(), 
             torchvision.transforms.Normalize((0.1307,), (0.3081,))
@@ -23,6 +26,19 @@ class MNISTSplitter():
         mnist_test = torchvision.datasets.MNIST(root=self.path, train=False, download=False, transform=transforms)
         
         return mnist_train, mnist_test
+
+    def load_trainTest_cifar10(self):
+        transforms = torchvision.transforms.Compose([
+            torchvision.transforms.RandomCrop(32, padding=4), 
+            torchvision.transforms.RandomHorizontalFlip(), 
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+        ])
+
+        self.cifar10_train = torchvision.datasets.CIFAR10(root=self.path, train=True, download=False, transform=transforms)
+        self.cifar10_test = torchvision.datasets.CIFAR10(root=self.path, train=False, download=False, transform=transforms)
+
+        return self.cifar10_train, self.cifar10_test
 
     def random_samples(self, m:int, main_index:int, p_main:float, p_others:float):
         classes = np.array(range(self.num_class))
@@ -35,12 +51,12 @@ class MNISTSplitter():
         n: total number of clients, multiple of 10;
         m: number of samples per client;
         q: degree of non-IID;
-        save_path: './Data/MNIST/' by default.
+        save_path: './Data/[self.path]/' by default.
         """
         assert n%self.num_class == 0
         
         train_samples = [[] for _ in range(self.num_class)]
-        for train_sample in self.mnist_train:
+        for train_sample in self.data_train:
             train_samples[train_sample[1]].append(train_sample)
 
         for client in range(n):      
@@ -56,12 +72,12 @@ class MNISTSplitter():
         n: total number of clients, multiple of 10;
         m: number of samples per client;
         q: degree of non-IID;
-        save_path: './Data/MNIST/' by default.
+        save_path: './Data/[self.path]/' by default.
         """
         assert n%self.num_class == 0
         
         eval_samples = [[] for _ in range(self.num_class)]
-        for eval_sample in self.mnist_test:
+        for eval_sample in self.data_test:
             eval_samples[eval_sample[1]].append(eval_sample)
 
         for client in range(n):      
@@ -72,21 +88,24 @@ class MNISTSplitter():
             random.shuffle(client_eval)
             torch.save(client_eval, self.path+save_path+"client_eval_"+str(client)+".pt")
 
+
 if __name__ == "__main__":
     
-    path = "./Data/MNIST"
-    mysplitter = MNISTSplitter(path)
+    path = "./Data/CIFAR10"
+    dataset = "CIFAR10"
+    mysplitter = DataSplitter(path=path, dataset=dataset)
 
-    # MNIST IID data splition
-    mysplitter.split_train_data(n=200, m=600, q=0.1, save_path='/iid/')
-    mysplitter.split_eval_data(n=200, m=600, q=0.1, save_path='/iid/')
+    # IID data splition
+    mysplitter.split_train_data(n=200, m=500, q=0.1, save_path='/iid/')
+    mysplitter.split_eval_data(n=200, m=500, q=0.1, save_path='/iid/')
 
-    # MNIST non-IID data splition
-    mysplitter.split_train_data(n=200, m=600, q=0.5, save_path='/noniid/')
-    mysplitter.split_eval_data(n=200, m=600, q=0.5, save_path='/noniid/')
+    # non-IID data splition
+    mysplitter.split_train_data(n=200, m=500, q=0.5, save_path='/noniid/')
+    mysplitter.split_eval_data(n=200, m=500, q=0.5, save_path='/noniid/')
+
     print("Finished Splition")
 
-        
+
 
 
         
