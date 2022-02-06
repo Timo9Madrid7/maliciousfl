@@ -4,7 +4,6 @@ import torchvision
 import random
 import numpy as np
 
-# TODO: class Splitter should be the parent class for children MNIST, FMNIST and CIFAR spliters.
 class MNISTSplitter():
     def __init__(self, path: str) -> None:
         """
@@ -15,21 +14,13 @@ class MNISTSplitter():
         self.mnist_train, self.mnist_test = self.load_trianTest_mnist()
     
     def load_trianTest_mnist(self):
-        transforms = torchvision.transforms
+        transforms = torchvision.transforms.Compose([
+            torchvision.transforms.ToTensor(), 
+            torchvision.transforms.Normalize((0.1307,), (0.3081,))
+        ])
 
-        mnist_train = torchvision.datasets.MNIST(
-                root=self.path, train=True, download=False, 
-                transform=transforms.Compose([
-                    transforms.ToTensor(), 
-                    transforms.Normalize((0.1307,), (0.3081,)) 
-            ]))
-
-        mnist_test = torchvision.datasets.MNIST(
-                root=self.path, train=False, download=False, 
-                transform=transforms.Compose([
-                    transforms.ToTensor(),
-                    transforms.Normalize((0.1307,), (0.3081,))
-            ]))
+        mnist_train = torchvision.datasets.MNIST(root=self.path, train=True, download=False, transform=transforms)
+        mnist_test = torchvision.datasets.MNIST(root=self.path, train=False, download=False, transform=transforms)
         
         return mnist_train, mnist_test
 
@@ -46,14 +37,14 @@ class MNISTSplitter():
         q: degree of non-IID;
         save_path: './Data/MNIST/' by default.
         """
-        assert n%10 == 0
+        assert n%self.num_class == 0
         
         train_samples = [[] for _ in range(self.num_class)]
         for train_sample in self.mnist_train:
             train_samples[train_sample[1]].append(train_sample)
 
         for client in range(n):      
-            samples_per_class = self.random_samples(m, client%10, q, (1-q)/(self.num_class-1))
+            samples_per_class = self.random_samples(m, client%self.num_class, q, (1-q)/(self.num_class-1))
             client_train = []
             for i in range(self.num_class):
                 client_train += random.sample(train_samples[i], samples_per_class[i])
@@ -67,14 +58,14 @@ class MNISTSplitter():
         q: degree of non-IID;
         save_path: './Data/MNIST/' by default.
         """
-        assert n%10 == 0
+        assert n%self.num_class == 0
         
         eval_samples = [[] for _ in range(self.num_class)]
         for eval_sample in self.mnist_test:
             eval_samples[eval_sample[1]].append(eval_sample)
 
         for client in range(n):      
-            samples_per_class = self.random_samples(m, client%10, q, (1-q)/(self.num_class-1))
+            samples_per_class = self.random_samples(m, client%self.num_class, q, (1-q)/(self.num_class-1))
             client_eval = []
             for i in range(self.num_class):
                 client_eval += random.sample(eval_samples[i], samples_per_class[i])
