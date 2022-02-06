@@ -108,4 +108,30 @@ def load_data_cifar10(id, batch=None, path=None):
         return train_iter, test_iter
 
     return train_iter
+
+def load_data_noniid_cifar10(client_index, batch=128, noniid=True):
+    if noniid:
+        path = "./Data/CIFAR10/noniid"
+    else:
+        path = "./Data/CIFAR10/iid"
+    data = torch.load(path+'/'+'client_'+client_index+'.pt')
+    train_iter = torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
+    return train_iter
+
+def load_data_dpclient_cifar10(client_index, batch=128, noniid=True):
+    if noniid:
+        path="./Data/CIFAR10/noniid/test/dpclient_"
+    else:
+        path="./Data/CIFAR10/iid/test/dpclient_"
+    data = torch.load(path+client_index+".pt")
+    dp_iter = torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
+    return dp_iter
+
+def load_data_dittoEval_cifar10(client_index, batch=128, noniid=True):
+    if noniid:
+        path="./Data/CIFAR10/noniid"
+    else:
+        path="./Data/CIFAR10/iid"
+    data = torch.load(path+'/'+'client_eval_'+client_index+'.pt')
+    return torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
     
