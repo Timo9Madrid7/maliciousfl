@@ -161,8 +161,8 @@ class WorkerBase(metaclass=ABCMeta):
             self.upgrade()
 
             print("epoch: %d | G_loss: %.3f | D_loss: %.3f | P?:"%(epoch, G_loss, D_loss), poison)
-            torch.save(self.G_model.state_dict(), './Model/InferModelG')
-            torch.save(self.D_model.state_dict(), './Model/InferModelD')
+            torch.save(self.G_model.state_dict(), './Model/LeNet/InferModelG')
+            torch.save(self.D_model.state_dict(), './Model/LeNet/InferModelD')
 
     def write_acc_record(self, fpath, info):
         s = ""
