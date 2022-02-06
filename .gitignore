@@ -132,6 +132,5 @@ dmypy.json
 *.bmp
 *.gif
 *.csv
-Model/local_Models/
+Model/
 .vscode/settings.json
-Model/LeNet
