@@ -9,20 +9,29 @@ from torchsummary import summary
 
 
 
-PATH = config.global_models_path
-#PATH = './Model/ResNet18'
-#model = models.resnet18()
-model = LeNet()
-#model = ResNet(BasicBlock, [3,3,3])
-torch.save(model.state_dict(), PATH)
 
-if not os.path.exists('./Model/LeNet/Local_Models'):
-    os.makedirs('./Model/LeNet/Local_Models')
-for i in range(config.total_number_clients):
-    torch.save(model.state_dict(), config.local_models_path+str(i))
+if config.Model == "LeNet":
+    model = LeNet()
+    if not os.path.exists('./Model/LeNet'):
+        os.makedirs('./Model/LeNet')
+    torch.save(model.state_dict(), config.global_models_path)
+    if not os.path.exists('./Model/LeNet/Local_Models'):
+        os.makedirs('./Model/LeNet/Local_Models')
+    for i in range(config.total_number_clients):
+        torch.save(model.state_dict(), config.local_models_path+str(i))
+    model_summary = summary(model, (1,28,28))
 
-data_shape = (1,28,28)
-temp_model = summary(model, data_shape)
+elif config.Model == "ResNet":
+    model = ResNet(BasicBlock, [3,3,3])
+    if not os.path.exists('./Model/ResNet'):
+        os.makedirs('./Model/ResNet')
+    torch.save(model.state_dict(), config.global_models_path)
+    if not os.path.exists("./Model/ResNet/Local_models"):
+        os.makedirs("./Model/ResNet/Local_Models")
+    for i in range(config.total_number_clients):
+        torch.save(model.state_dict(), config.local_models_path+str(i))
+    model_summary = summary(model, (3,32,32))
+
 
 # # Model info
 # model_load = LeNet()
