@@ -6,7 +6,9 @@ from Common.Grpc.fl_grpc_pb2 import GradRequest_Clipping
 # Utils
 from Common.Node.workerbase_v3 import WorkerBase as WorkerBaseDitto
 from Common.Model.LeNet import LeNet
+from Common.Model.ResNet import ResNet, BasicBlock
 from Common.Utils.data_loader import load_data_noniid_mnist, load_data_dittoEval_mnist, load_all_test_mnist
+from Common.Utils.data_loader import load_data_noniid_cifar10, load_data_dittoEval_cifar10
 from Common.Utils.evaluate import evaluate_accuracy
 from Common.Utils.set_log import setup_logging
 from Common.Utils.options import args_parser
@@ -88,8 +90,11 @@ class ClearDenseClient(WorkerBaseDitto):
     def upgrade_local(self):
         torch.save(self.local_model.state_dict(), self.config.local_models_path+self.client_id)
     
-    def malicious_random_upload(self):
-        gradients,b = np.random.normal(self.clippingBound, 1, size=(44426,)), 1
+    def malicious_random_upload(self, model="LeNet"):
+        if model == "LeNet":
+            gradients,b = np.random.normal(self.clippingBound, 1, size=(44426,)), 1
+        elif model == "ResNet":
+            gradients,b = np.random.normal(self.clippingBound, 1, size=(269722,)), 1
         if not self.dpoff:
             gradients += np.random.normal(0, self.grad_noise_sigma*self.clippingBound/np.sqrt(self.clients_per_round), size=gradients.shape)
             b += np.random.normal(0, self.b_noise_std/np.sqrt(self.clients_per_round))
@@ -107,11 +112,16 @@ if __name__ == '__main__':
     setup_logging(default_path=yaml_path)
 
     # model setttings
-    PATH = config.global_models_path
-    model = LeNet().to(device)
-    model.load_state_dict(torch.load(PATH))
-    optimizer = torch.optim.Adam(model.parameters(), args.lr)
-    loss_func = torch.nn.CrossEntropyLoss()
+    if config.Model == "LeNet":
+        model = LeNet().to(device)
+        model.load_state_dict(torch.load(config.global_models_path))
+        optimizer = torch.optim.Adam(model.parameters(), args.lr)
+        loss_func = torch.nn.CrossEntropyLoss()
+    elif config.Model == "ResNet":
+        model = ResNet(BasicBlock, [3,3,3]).to(device)
+        model.load_state_dict(torch.load(config.global_models_path))
+        optimizer = torch.optim.Adam(model.parameters(), args.lr)
+        loss_func = torch.nn.CrossEntropyLoss()
     clippingBound = config.initClippingBound
 
     # debug_test_iter = load_all_test_mnist()
@@ -126,12 +136,20 @@ if __name__ == '__main__':
 
         for epoch in range(config.num_epochs):
             client_id = str(np.random.randint(0,config.total_number_clients))
-            local_model = LeNet().to(device)
-            local_model.load_state_dict(torch.load(config.local_models_path+client_id))
-            local_optimizer = torch.optim.Adam(local_model.parameters(), config.llr)
-            local_loss_func = torch.nn.CrossEntropyLoss()
-            train_iter = load_data_noniid_mnist(client_id, noniid=config._noniid)
-            eval_iter = load_data_dittoEval_mnist(client_id, noniid=config._noniid)
+            if config.Model == "LeNet":
+                local_model = LeNet().to(device)
+                local_model.load_state_dict(torch.load(config.local_models_path+client_id))
+                local_optimizer = torch.optim.Adam(local_model.parameters(), config.llr)
+                local_loss_func = torch.nn.CrossEntropyLoss()
+                train_iter = load_data_noniid_mnist(client_id, noniid=config._noniid)
+                eval_iter = load_data_dittoEval_mnist(client_id, noniid=config._noniid)
+            elif config.Model == "ResNet":
+                local_model = ResNet(BasicBlock, [3,3,3]).to(device)
+                local_model.load_state_dict(torch.load(config.local_models_path+client_id))
+                local_optimizer = torch.optim.Adam(local_model.parameters(), config.llr)
+                local_loss_func = torch.nn.CrossEntropyLoss()
+                train_iter = load_data_noniid_cifar10(client_id, noniid=config._noniid, batch=64)
+                eval_iter = load_data_dittoEval_cifar10(client_id, noniid=config._noniid, batch=64)
 
             client = ClearDenseClient(
                 thread_id=args.id,
@@ -157,6 +175,6 @@ if __name__ == '__main__':
                 verbose = False
 
             if args.id in config.malicious_client:
-                clippingBound = client.malicious_random_upload()
+                clippingBound = client.malicious_random_upload(model=config.Model)
             else:
-                clippingBound = client.fl_train(local_epoch=3, verbose=verbose)
+                clippingBound = client.fl_train(local_epoch=config.local_epoch, verbose=verbose)

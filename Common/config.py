@@ -1,6 +1,6 @@
-num_epochs = 5
+num_epochs = 15
 total_number_clients = 200
-num_workers = 10
+num_workers = 20
 
 idx_max_length = 50000
 grad_shift = 2 ** 20
@@ -16,15 +16,24 @@ mpc_idx_port = 50003
 mpc_grad_port = 50004
 grpc_options = [('grpc.max_send_message_length', -1), ('grpc.max_receive_message_length', -1)]
 
-# Ditto parameters
-llr = 0.1 # local learning rate
+# Model Setting
+Model = "LeNet"
+if Model == "LeNet":
+    local_models_path = "./Model/LeNet/Local_Models/LeNet_"
+    global_models_path = "./Model/LeNet/LeNet"
+elif Model == "ResNet":
+    local_models_path = "./Model/ResNet/Local_models/ResNet_"
+    global_models_path = "./Model/ResNet/ResNet"
+# local epochs
+local_epoch = 3
+# local learning rate
+llr = 0.1 
 # adaptive Ditto parameters
 minLambda = 0.00
 maxLambda = 2.00
-local_models_path = "./Model/LeNet/Local_Models/LeNet_"
 # global Ditto parameters
 global_lambda = 0
-global_models_path = "./Model/LeNet/LeNet"
+
 
 # adaptive clipping parameters
 initClippingBound = 10 # initial clipping bound

@@ -6,6 +6,7 @@ from Common.Grpc.fl_grpc_pb2 import GradResponse_Clipping
 from Common.Server.server_handler import AvgGradientHandler
 from Common.Utils.data_loader import load_all_test_mnist
 from Common.Model.LeNet import LeNet
+from Common.Model.ResNet import ResNet, BasicBlock
 
 # Settings
 import Common.config as config
@@ -36,7 +37,10 @@ class ClearDenseServer(FLGrpcClipServer):
 if __name__ == "__main__":
 
     device = torch.device('cpu' if torch.cuda.is_available() else 'cpu') 
-    model = LeNet().to(device)
+    if config.Model == "LeNet":
+        model = LeNet().to(device)
+    elif config.Model == "ResNet":
+        model = ResNet(BasicBlock, [3,3,3])
     model.load_state_dict(torch.load(config.global_models_path))
     # test_iter = load_all_test_mnist()
     test_iter = None
@@ -45,6 +49,6 @@ if __name__ == "__main__":
 
     clear_server = ClearDenseServer(address=config.server1_address, port=config.port1, config=config,
                                     handler=gradient_handler)
-    print('ratio %d/%d:'%(config.num_workers, config.total_number_clients), '| dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen,
+    print('ratio %d/%d:'%(config.num_workers, config.total_number_clients), '| model:', config.Model, '| dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen,
     '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma, '| grad_noise_sigma:', config.grad_noise_sigma)
     clear_server.start()
