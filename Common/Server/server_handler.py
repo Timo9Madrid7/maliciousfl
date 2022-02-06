@@ -124,8 +124,8 @@ class AvgGradientHandler(Handler):
 
         grad_in = grad_in.tolist()
         self.upgrade(grad_in, self.model)
-        # ? only for debugging and experimental evaluation
-        print("current global model accuracy: %.3f"%evaluate_accuracy(self.test_iter, self.model))
+        if self.test_iter != None:
+            print("current global model accuracy: %.3f"%evaluate_accuracy(self.test_iter, self.model))
         return grad_in, S
 
 

@@ -38,7 +38,8 @@ if __name__ == "__main__":
     device = torch.device('cpu' if torch.cuda.is_available() else 'cpu') 
     model = LeNet().to(device)
     model.load_state_dict(torch.load(config.global_models_path))
-    test_iter = load_all_test_mnist()
+    # test_iter = load_all_test_mnist()
+    test_iter = None
 
     gradient_handler = AvgGradientHandler(config=config, model=model, device=device, test_iter=test_iter)
 
