@@ -23,7 +23,7 @@ def upgrade(grad_in:list, model):
         layer += 1    
 
 if __name__ == "__main__":
-    device = torch.device("cpu" if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
     global_model = LeNet().to(device)
     level_length = [0]
     for param in global_model.parameters():
@@ -48,7 +48,7 @@ if __name__ == "__main__":
             local_model.load_state_dict(torch.load(config.local_models_path+client_id))
             local_optimizer = torch.optim.Adam(local_model.parameters(), config.llr)
             local_loss_func = torch.nn.CrossEntropyLoss()
-            model = deepcopy(global_model)
+            model = deepcopy(global_model).to(device)
             optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
             loss_func = torch.nn.CrossEntropyLoss()
 
