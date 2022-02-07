@@ -1,4 +1,4 @@
-num_epochs = 15
+num_epochs = 51
 total_number_clients = 200
 num_workers = 20
 
@@ -46,7 +46,7 @@ grad_noise_sigma = 1.005 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters
 _noniid = False
-_dpoff = True
+_dpoff = False
 _dpcompen = False
 # TODO: differential privacy test has not been implemented in this version
 # _dprecord, _dpin, _dpclient = False, False, "0" #_dpin: whether _dpclient is involved in the training
@@ -61,3 +61,7 @@ malicious_client = []
 # the number of parameters of an output layer neuron to neurons of the previous layer
 weight_index = 850
 bias_index = 10
+
+# recording description 
+recording = True
+surffix = "dpon_compen_malicious"
