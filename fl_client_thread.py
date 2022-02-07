@@ -138,18 +138,16 @@ if __name__ == '__main__':
             client_id = str(np.random.randint(0,config.total_number_clients))
             if config.Model == "LeNet":
                 local_model = LeNet().to(device)
-                local_model.load_state_dict(torch.load(config.local_models_path+client_id))
-                local_optimizer = torch.optim.Adam(local_model.parameters(), config.llr)
-                local_loss_func = torch.nn.CrossEntropyLoss()
                 train_iter = load_data_noniid_mnist(client_id, noniid=config._noniid)
                 eval_iter = load_data_dittoEval_mnist(client_id, noniid=config._noniid)
             elif config.Model == "ResNet":
                 local_model = ResNet(BasicBlock, [3,3,3]).to(device)
-                local_model.load_state_dict(torch.load(config.local_models_path+client_id))
-                local_optimizer = torch.optim.Adam(local_model.parameters(), config.llr)
-                local_loss_func = torch.nn.CrossEntropyLoss()
                 train_iter = load_data_noniid_cifar10(client_id, noniid=config._noniid, batch=64)
                 eval_iter = load_data_dittoEval_cifar10(client_id, noniid=config._noniid, batch=64)
+            with open(config.local_models_path+client_id, "rb") as f:
+                    local_model.load_state_dict(torch.load(f))
+            local_optimizer = torch.optim.Adam(local_model.parameters(), config.llr)
+            local_loss_func = torch.nn.CrossEntropyLoss()
 
             client = ClearDenseClient(
                 thread_id=args.id,
