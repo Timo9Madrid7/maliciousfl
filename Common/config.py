@@ -63,5 +63,5 @@ weight_index = 850
 bias_index = 10
 
 # recording description 
-recording = True
+recording = False
 surffix = "dpon_compen_malicious"
