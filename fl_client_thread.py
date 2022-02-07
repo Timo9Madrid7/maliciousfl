@@ -85,7 +85,7 @@ class ClearDenseClient(WorkerBaseDitto):
 
     def evaluation(self):
         if self.thread_id == 0:
-           return evaluate_accuracy(debug_test_iter, self.model)
+           return evaluate_accuracy(self.debug_test_iter, self.model)
     
     def upgrade_local(self):
         torch.save(self.local_model.state_dict(), self.config.local_models_path+self.client_id)
