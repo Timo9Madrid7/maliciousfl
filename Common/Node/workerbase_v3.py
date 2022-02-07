@@ -159,7 +159,13 @@ class WorkerBase(metaclass=ABCMeta):
             
         self._weight_cur = self.get_weights(model="global")
         self.calculate_weights_difference()
-        return self.get_gradients()
+        self.upgrade_local()
+        return self._gradients
+
+        clip_bound = self.update()
+        self.upgrade()
+
+        return clip_bound
 
     def show_similarity(self):
         """this function is only used for debugging"""
