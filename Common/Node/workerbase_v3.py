@@ -157,16 +157,9 @@ class WorkerBase(metaclass=ABCMeta):
                 %(self.client_id, local_test_acc, return_acc, np.mean(lambda_list), self.global_lambda, time.time() - start)
             )
             
-        # global model update
         self._weight_cur = self.get_weights(model="global")
         self.calculate_weights_difference()
-        clip_bound = self.update()
-        self.upgrade()
-
-        # local model update
-        self.upgrade_local()
-
-        return clip_bound
+        return self.get_gradients()
 
     def show_similarity(self):
         """this function is only used for debugging"""
