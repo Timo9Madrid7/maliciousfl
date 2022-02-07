@@ -38,7 +38,7 @@ class AvgGradientHandler(Handler):
         self.account_method = self.config.account_method
         self.weight_index = self.config.weight_index
         self.bias_index = self.config.bias_index
-        self.acc_params = []
+        self.log_moment = []
 
         self.cluster = hdbscan.HDBSCAN(
             metric='l2', 
@@ -55,6 +55,11 @@ class AvgGradientHandler(Handler):
             self.sigma = None
         self.track_eps = AutoDP_epsilon(self.delta)
 
+        # history recording
+        self.counter = 0
+        self.accuracy_history = []
+        self.epsilon_history = []
+
     def computation(self, data_in, b_in:list, S, gamma, blr):
         """the averaging process of the aggregator
 
@@ -68,6 +73,13 @@ class AvgGradientHandler(Handler):
         Returns:
             [list, float]: averaged gradients and next round clipping boundary
         """
+
+        self.counter += 1
+        if self.counter == self.config.num_epochs and self.config.recording:
+            np.savetxt("./Eva/accuracy/acc_"+self.config.Model+'_'+self.config.surffix+".txt", self.accuracy_history)
+            if self.epsilon_history != []:
+                np.savetxt("./Eva/dpbudget/eps_"+self.config.Model+'_'+self.config.surffix+".txt", self.epsilon_history)
+
         grad_in = np.array(data_in).reshape((self.clients_per_round, -1))
 
         # cosine distance filtering
@@ -111,6 +123,7 @@ class AvgGradientHandler(Handler):
                     account_method=self.account_method)
                 print("epsilon: %.2f | delta: %.6f | "%(cur_eps, cur_delta), end="")
             print("clip_bound: %.3f | used id: "%S, bengin_id)
+            self.epsilon_history.append(cur_eps)
             
             # gradients average
             grad_in = (grad_in[bengin_id].sum(axis=0) + noise_compensatory_grad) / len(bengin_id)
@@ -125,7 +138,9 @@ class AvgGradientHandler(Handler):
         grad_in = grad_in.tolist()
         self.upgrade(grad_in, self.model)
         if self.test_iter != None:
-            print("current global model accuracy: %.3f"%evaluate_accuracy(self.test_iter, self.model))
+            test_accuracy = evaluate_accuracy(self.test_iter, self.model)
+            print("current global model accuracy: %.3f"%test_accuracy)
+            self.accuracy_history.append(test_accuracy)
         return grad_in, S
 
 
@@ -177,8 +192,8 @@ class AvgGradientHandler(Handler):
         """
 
         if account_method == "googleTF": # Gaussian Moments Accountant
-            self.acc_params.append((q, sigma, 1))
-            cur_eps, cur_delta = acc_track_eps(self.acc_params, delta=config.delta)
+            self.log_moment.append((q, sigma, 1))
+            cur_eps, cur_delta = acc_track_eps(self.log_moment, delta=config.delta)
         elif account_method == "autodp": # Renyi Differential Privacy
             self.track_eps.update_mech(q, sigma, 1)
             cur_eps, cur_delta = self.track_eps.get_epsilon(), config.delta

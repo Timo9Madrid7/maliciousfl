@@ -4,7 +4,7 @@ from Common.Grpc.fl_grpc_pb2 import GradResponse_Clipping
 
 # Utils
 from Common.Server.server_handler import AvgGradientHandler
-from Common.Utils.data_loader import load_all_test_mnist
+from Common.Utils.data_loader import load_all_test_mnist, load_all_test_cifar10
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import ResNet, BasicBlock
 
@@ -42,8 +42,9 @@ if __name__ == "__main__":
     elif config.Model == "ResNet":
         model = ResNet(BasicBlock, [3,3,3])
     model.load_state_dict(torch.load(config.global_models_path))
-    # test_iter = load_all_test_mnist()
-    test_iter = None
+    test_iter = load_all_test_mnist()
+    # test_iter = load_all_test_cifar10()
+    # test_iter = None
 
     gradient_handler = AvgGradientHandler(config=config, model=model, device=device, test_iter=test_iter)
 
