@@ -115,13 +115,9 @@ if __name__ == '__main__':
     if config.Model == "LeNet":
         model = LeNet().to(device)
         model.load_state_dict(torch.load(config.global_models_path))
-        optimizer = torch.optim.Adam(model.parameters(), args.lr)
-        loss_func = torch.nn.CrossEntropyLoss()
     elif config.Model == "ResNet":
         model = ResNet(BasicBlock, [3,3,3]).to(device)
         model.load_state_dict(torch.load(config.global_models_path))
-        optimizer = torch.optim.Adam(model.parameters(), args.lr)
-        loss_func = torch.nn.CrossEntropyLoss()
     clippingBound = config.initClippingBound
 
     # debug_test_iter = load_all_test_mnist()
@@ -146,6 +142,8 @@ if __name__ == '__main__':
                 eval_iter = load_data_dittoEval_cifar10(client_id, noniid=config._noniid, batch=64)
             with open(config.local_models_path+client_id, "rb") as f:
                     local_model.load_state_dict(torch.load(f))
+            optimizer = torch.optim.Adam(model.parameters(), args.lr)
+            loss_func = torch.nn.CrossEntropyLoss()
             local_optimizer = torch.optim.Adam(local_model.parameters(), config.llr)
             local_loss_func = torch.nn.CrossEntropyLoss()
 
