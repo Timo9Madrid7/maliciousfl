@@ -1,4 +1,4 @@
-num_epochs = 51
+num_epochs = 21
 total_number_clients = 200
 num_workers = 20
 
@@ -32,7 +32,7 @@ grad_noise_sigma = 1.005 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters
 _noniid = False
-_dpoff = False
+_dpoff = True
 _dpcompen = False
 # TODO: differential privacy test has not been implemented in this version
 # _dprecord, _dpin, _dpclient = False, False, "0" #_dpin: whether _dpclient is involved in the training
