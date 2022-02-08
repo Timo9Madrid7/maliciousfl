@@ -4,11 +4,12 @@ from Common.Model.ResNet import ResNet, BasicBlock
 from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, load_data_dittoEval_mnist, load_all_test_mnist, load_data_dpclient_mnist
 from Common.Utils.data_loader import load_data_noniid_cifar10, load_data_dittoEval_cifar10
 from Common.Utils.evaluate import evaluate_accuracy
-from OfflinePack.client import OfflineClient
 from Common.Server.server_handler import AvgGradientHandler
 
-# Settings
+# Offline Packages
 import OfflinePack.offline_config as config
+from OfflinePack.client import OfflineClient
+from OfflinePack.infer_client import InferClient
 
 # Other Libs
 import torch
@@ -62,25 +63,32 @@ if __name__ == "__main__":
             optimizer = torch.optim.Adam(model.parameters(), lr=config.glr)
             loss_func = torch.nn.CrossEntropyLoss()
 
-            client = OfflineClient(
-                client_id=client_id,
-                train_iter=train_iter,
-                eval_iter=eval_iter,
-                model=model,
-                loss_func=loss_func,
-                optimizer=optimizer,
-                local_model=local_model,
-                local_loss_func=local_loss_func,
-                local_optimizer=local_optimizer,
-                config=config,
-                device=device,
-                clippingBound=clippingBound)
-
-            if client_id_counter in config.malicious_client:
-                grads_dp, b_dp = client.malicious_random_upload()
+            if config.reconstruct_inference and int(client_id) == client_ids_[-1]:
+                train_iter, _ = load_data_mnist(0, 128, path='./Data/MNIST')
+                infer_client = InferClient(model, loss_func, optimizer, train_iter, config, target=config.target, device=device)
+                grads_raw = infer_client.fl_train()
+                grads_dp, b_dp = infer_client.adaptiveClipping(grads_raw)
             else:
-                grads_raw = client.fl_train(local_epoch=config.local_epoch, verbose=True)
-                grads_dp, b_dp = client.adaptiveClipping(grads_raw)
+                client = OfflineClient(
+                    client_id=client_id,
+                    train_iter=train_iter,
+                    eval_iter=eval_iter,
+                    model=model,
+                    loss_func=loss_func,
+                    optimizer=optimizer,
+                    local_model=local_model,
+                    local_loss_func=local_loss_func,
+                    local_optimizer=local_optimizer,
+                    config=config,
+                    device=device,
+                    clippingBound=clippingBound)
+
+                if client_id_counter in config.malicious_client:
+                    grads_dp, b_dp = client.malicious_random_upload()
+                else:
+                    grads_raw = client.fl_train(local_epoch=config.local_epoch, verbose=True)
+                    grads_dp, b_dp = client.adaptiveClipping(grads_raw)
+
             grads_list_.append(grads_dp)
             b_list_.append(b_dp)
             client_id_counter += 1
@@ -95,7 +103,6 @@ if __name__ == "__main__":
     if config.dp_test:
         print("client_%s showed %d times"%(config.dp_client, client_dp_counter))
     
-
 
 
 
