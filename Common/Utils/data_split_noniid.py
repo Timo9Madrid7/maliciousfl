@@ -104,9 +104,9 @@ if __name__ == "__main__":
     # create_noniid_eval_clients()
     # create_dptest_client(client_classes="0123456")
     
-    create_iid_clients(number_clients=200, number_samples_per_class=100)
-    create_iid_eval_clients(number_clients=200, number_samples_per_class=50)
-    create_dptest_client(client_classes="0123456789", number_samples_per_class=100, save_path="./Data/MNIST/iid/test/dpclient_")
+    # create_iid_clients(number_clients=200, number_samples_per_class=100)
+    # create_iid_eval_clients(number_clients=200, number_samples_per_class=50)
+    create_dptest_client(client_classes="0123456789", number_samples_per_class=100, save_path="./Data/MNIST/iid/client_dp/client_")
     
     
     # test_client = torch.load("./Data/MNIST/noniid/client_678.pt")

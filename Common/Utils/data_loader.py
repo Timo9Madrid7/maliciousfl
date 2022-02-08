@@ -54,9 +54,9 @@ def load_data_noniid_mnist(client_index, batch=128, noniid=True):
 
 def load_data_dpclient_mnist(client_index, batch=128, noniid=True):
     if noniid:
-        path="./Data/MNIST/noniid/test/dpclient_"
+        path="./Data/MNIST/noniid/client_dp/client_"
     else:
-        path="./Data/MNIST/iid/test/dpclient_"
+        path="./Data/MNIST/iid/client_dp/client_"
     data = torch.load(path+client_index+".pt")
     dp_iter = torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
     return dp_iter
@@ -120,9 +120,9 @@ def load_data_noniid_cifar10(client_index, batch=128, noniid=True):
 
 def load_data_dpclient_cifar10(client_index, batch=128, noniid=True):
     if noniid:
-        path="./Data/CIFAR10/noniid/test/dpclient_"
+        path="./Data/CIFAR10/noniid/client_dp/client_"
     else:
-        path="./Data/CIFAR10/iid/test/dpclient_"
+        path="./Data/CIFAR10/iid/client_dp/client_"
     data = torch.load(path+client_index+".pt")
     dp_iter = torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
     return dp_iter
