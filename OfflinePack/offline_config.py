@@ -34,7 +34,7 @@ grad_noise_sigma = 1.005
 # data distribution
 _noniid = False # q=0.3 by default
 # differential privacy parameters
-_dpoff = False
+_dpoff = True
 _dpcompen = False
 delta = 1e-4
 account_method = "autodp"
@@ -47,6 +47,8 @@ dp_client = '0'
 # byzantine clients
 flipping_clients = []
 malicious_client = []
+reconstruct_inference = True # replace the last client by default
+target = 3
 
 # deepsight
 # the number of parameters of an output layer neuron to neurons of the previous layer
