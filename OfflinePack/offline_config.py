@@ -47,7 +47,7 @@ dp_client = '0'
 # byzantine clients
 flipping_clients = []
 malicious_client = []
-reconstruct_inference = True # replace the last client by default
+reconstruct_inference = False # replace the last client by default
 target = 3
 
 # deepsight
