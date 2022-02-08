@@ -91,17 +91,17 @@ class DataSplitter():
 
 if __name__ == "__main__":
     
-    path = "./Data/CIFAR10"
-    dataset = "CIFAR10"
+    path = "./Data/MNIST"
+    dataset = "MNIST"
     mysplitter = DataSplitter(path=path, dataset=dataset)
 
     # IID data splition
-    mysplitter.split_train_data(n=200, m=500, q=0.1, save_path='/iid/')
-    mysplitter.split_eval_data(n=200, m=500, q=0.1, save_path='/iid/')
+    # mysplitter.split_train_data(n=200, m=600, q=0.1, save_path='/iid/')
+    # mysplitter.split_eval_data(n=200, m=600, q=0.1, save_path='/iid/')
 
     # non-IID data splition
-    mysplitter.split_train_data(n=200, m=500, q=0.5, save_path='/noniid/')
-    mysplitter.split_eval_data(n=200, m=500, q=0.5, save_path='/noniid/')
+    mysplitter.split_train_data(n=200, m=600, q=0.3, save_path='/noniid/')
+    mysplitter.split_eval_data(n=200, m=600, q=0.3, save_path='/noniid/')
 
     print("Finished Splition")
 

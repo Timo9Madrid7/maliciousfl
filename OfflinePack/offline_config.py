@@ -31,7 +31,7 @@ b_noise_std = 5 # (from client side) [1.7823 ~ (e,10^-5)DP]
 grad_noise_sigma = 1.005 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters
-_noniid = False
+_noniid = True
 _dpoff = True
 _dpcompen = False
 # TODO: differential privacy test has not been implemented in this version
