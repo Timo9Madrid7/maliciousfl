@@ -32,7 +32,8 @@ if __name__ == "__main__":
     clippingBound = config.initClippingBound
 
     print('model:', config.Model, '| dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen,
-    '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma, 
+    '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
+    '| malicious clients:', len(config.malicious_client), 
     '\n')
 
     client_dp_counter = 0
