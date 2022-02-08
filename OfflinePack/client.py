@@ -54,4 +54,11 @@ class OfflineClient(WorkerBaseDitto):
         torch.save(self.local_model.state_dict(), self.config.local_models_path+self.client_id)
     
     def malicious_random_upload(self, model="LeNet"):
-        pass
+        if model == "LeNet":
+            gradients,b = np.random.normal(self.clippingBound, 1, size=(44426,)), 1
+        elif model == "ResNet":
+            gradients,b = np.random.normal(self.clippingBound, 1, size=(269722,)), 1
+        if not self.dpoff:
+            gradients += np.random.normal(0, self.grad_noise_sigma*self.clippingBound/np.sqrt(self.clients_per_round), size=gradients.shape)
+            b += np.random.normal(0, self.b_noise_std/np.sqrt(self.clients_per_round))
+        return gradients.tolist(), b

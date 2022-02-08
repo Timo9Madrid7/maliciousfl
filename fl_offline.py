@@ -37,6 +37,7 @@ if __name__ == "__main__":
             %(epoch, config.num_workers, config.total_number_clients))
         
         # Clients
+        client_id_counter = 0
         client_ids_ = random.sample(range(120), config.num_workers)
         b_list_ = []
         grads_list_ = []
@@ -66,10 +67,14 @@ if __name__ == "__main__":
                 device=device,
                 clippingBound=clippingBound)
 
-            grads_raw = client.fl_train(local_epoch=config.local_epoch, verbose=True)
-            grads_dp, b_dp = client.adaptiveClipping(grads_raw)
+            if client_id_counter in config.malicious_client:
+                grads_dp, b_dp = client.malicious_random_upload()
+            else:
+                grads_raw = client.fl_train(local_epoch=config.local_epoch, verbose=True)
+                grads_dp, b_dp = client.adaptiveClipping(grads_raw)
             grads_list_.append(grads_dp)
             b_list_.append(b_dp)
+            client_id_counter += 1
         
         # Server
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Server>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
