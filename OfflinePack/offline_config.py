@@ -15,7 +15,7 @@ glr = 0.01
 # local epochs
 local_epoch = 3
 # local learning rate
-llr = 0.1 
+llr = 0.01 
 # adaptive Ditto parameters
 minLambda = 0.00
 maxLambda = 2.00
@@ -28,22 +28,25 @@ initClippingBound = 10 # initial clipping bound
 beta = 0.1 # last round gradient weight
 blr = 0.5 # clipping bound learning rate
 gamma = 0.5 # non-clipping ratio {0.1, 0.3, 0.5, 0.7, 0.9}
-# b_noise = num_workers/20 # noise standard deviation added to counts (from server side)
-b_noise_std = 5 # (from client side) [1.7823 ~ (e,10^-5)DP]
-grad_noise_sigma = 1.005 # {0, 0.01, 0.03, 0.1} * num_workers
+b_noise_std = 5
+grad_noise_sigma = 1.005
 
+# data distribution
+_noniid = False # q=0.3 by default
 # differential privacy parameters
-_noniid = False
 _dpoff = False
 _dpcompen = False
-# TODO: differential privacy test has not been implemented in this version
-# _dprecord, _dpin, _dpclient = False, False, "0" #_dpin: whether _dpclient is involved in the training
 delta = 1e-4
 account_method = "autodp"
 
+# inference attack
+dp_test = False
+dp_in = False
+dp_client = '0'
+
 # byzantine clients
 flipping_clients = []
-malicious_client = [1,2,3,4,5,6,7,8,9]
+malicious_client = []
 
 # deepsight
 # the number of parameters of an output layer neuron to neurons of the previous layer
@@ -52,4 +55,4 @@ bias_index = 10
 
 # recording description 
 recording = False
-surffix = "dpon_compen_malicious"
+surffix = ""
