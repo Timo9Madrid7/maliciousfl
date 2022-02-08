@@ -1,7 +1,7 @@
 # Utils
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import ResNet, BasicBlock
-from Common.Utils.data_loader import load_data_noniid_mnist, load_data_dittoEval_mnist, load_all_test_mnist
+from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, load_data_dittoEval_mnist, load_all_test_mnist, load_data_dpclient_mnist
 from Common.Utils.data_loader import load_data_noniid_cifar10, load_data_dittoEval_cifar10
 from Common.Utils.evaluate import evaluate_accuracy
 from OfflinePack.client import OfflineClient
@@ -23,7 +23,10 @@ if __name__ == "__main__":
     for param in global_model.parameters():
         level_length.append(param.data.numel() + level_length[-1])
     global_model.load_state_dict(torch.load(config.global_models_path))
-    test_iter = load_all_test_mnist()
+    if config.dp_test:
+        test_iter = load_data_dpclient_mnist(config.dp_client, noniid=config._noniid)
+    else:
+        test_iter = load_all_test_mnist()
     aggregator = AvgGradientHandler(config, global_model, device, test_iter)
 
     clippingBound = config.initClippingBound
@@ -32,6 +35,7 @@ if __name__ == "__main__":
     '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma, 
     '\n')
 
+    client_dp_counter = 0
     for epoch in range(config.num_epochs):
         print("epoch %d started, %d out of %d clients selected"
             %(epoch, config.num_workers, config.total_number_clients))
@@ -43,7 +47,11 @@ if __name__ == "__main__":
         grads_list_ = []
         for client_id in client_ids_:
             client_id = str(client_id)
-            train_iter = load_data_noniid_mnist(client_id, noniid=config._noniid)
+            if config.dp_test and config.dp_in and client_id == config.dp_client:
+                client_dp_counter += 1
+                train_iter = load_data_dpclient_mnist(config.dp_client, noniid=config._noniid)
+            else:
+                train_iter = load_data_noniid_mnist(client_id, noniid=config._noniid)
             eval_iter = load_data_dittoEval_mnist(client_id, noniid=config._noniid)
             local_model = LeNet().to(device)
             local_model.load_state_dict(torch.load(config.local_models_path+client_id))
@@ -82,6 +90,9 @@ if __name__ == "__main__":
             grads_list_, b_list_, 
             clippingBound, config.gamma, config.blr)
         print()
+    
+    if config.dp_test:
+        print("client_%s showed %d times"%(config.dp_client, client_dp_counter))
     
 
 
