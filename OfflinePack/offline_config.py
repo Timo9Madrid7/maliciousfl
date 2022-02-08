@@ -1,4 +1,4 @@
-num_epochs = 21
+num_epochs = 51
 total_number_clients = 200
 num_workers = 20
 
@@ -10,6 +10,8 @@ if Model == "LeNet":
 elif Model == "ResNet":
     local_models_path = "./Model/ResNet/Local_models/ResNet_"
     global_models_path = "./Model/ResNet/ResNet"
+# global learning rate
+glr = 0.01
 # local epochs
 local_epoch = 3
 # local learning rate
@@ -31,8 +33,8 @@ b_noise_std = 5 # (from client side) [1.7823 ~ (e,10^-5)DP]
 grad_noise_sigma = 1.005 # {0, 0.01, 0.03, 0.1} * num_workers
 
 # differential privacy parameters
-_noniid = True
-_dpoff = True
+_noniid = False
+_dpoff = False
 _dpcompen = False
 # TODO: differential privacy test has not been implemented in this version
 # _dprecord, _dpin, _dpclient = False, False, "0" #_dpin: whether _dpclient is involved in the training
@@ -41,7 +43,7 @@ account_method = "autodp"
 
 # byzantine clients
 flipping_clients = []
-malicious_client = []
+malicious_client = [1,2,3,4,5,6,7,8,9]
 
 # deepsight
 # the number of parameters of an output layer neuron to neurons of the previous layer
