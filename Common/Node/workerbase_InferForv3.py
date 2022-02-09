@@ -30,7 +30,7 @@ class WorkerBase(metaclass=ABCMeta):
         self.target = target
         # Generator model parameters:
         self.G_model = Generator().to(device)
-        self.G_optimizer = torch.optim.SGD(self.G_model.parameters(), lr=0.05)
+        self.G_optimizer = torch.optim.SGD(self.G_model.parameters(), lr=0.05, momentum=0.9)
         # Discriminator model parameters:
         self.D_model = copy.deepcopy(model).to(device)
         self.D_optimizer = torch.optim.Adam(self.D_model.parameters(), lr=0.01)
@@ -119,7 +119,7 @@ class WorkerBase(metaclass=ABCMeta):
                     poison += [1]
                 # elif np.sum(y_valid_hat[self.target] < np.delete(y_valid_hat, self.target)) > 4:
                 #     X = torch.cat((X.to(self.device), x_gen))
-                #     y = torch.cat((y, (self.target*torch.ones(len(x_gen), dtype=torch.long)).to(self.device)))
+                #     y = torch.cat((y, (self.target*torch.ones(len(x_gen), dtype=torch.long))))
                 #     poison += [2]
                 else:
                     poison += [0]
