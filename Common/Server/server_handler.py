@@ -83,7 +83,10 @@ class AvgGradientHandler(Handler):
         grad_in = np.array(data_in).reshape((self.clients_per_round, -1))
 
         # cosine distance filtering
-        bengin_id = self.cosine_distance_filter(grad_in)
+        if self.config.naive_aggregation:
+            bengin_id = list(range(self.clients_per_round))
+        else:
+            bengin_id = self.cosine_distance_filter(grad_in)
 
         # TODO: deepsight implementation
         # with open("./Eva/deepsight/grad_ly.txt", 'a') as f:
