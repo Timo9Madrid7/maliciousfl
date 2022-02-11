@@ -1,4 +1,4 @@
-num_epochs = 51
+num_epochs = 21
 total_number_clients = 200
 num_workers = 20
 
@@ -50,8 +50,13 @@ dp_client = '0'
 # byzantine clients
 flipping_clients = []
 malicious_client = []
+
 reconstruct_inference = False # replace the last client by default
 target = 3
+
+backdoor_client = []
+backdoor_pdr = 0
+backdoor_target = 0
 
 # deepsight
 # the number of parameters of an output layer neuron to neurons of the previous layer
