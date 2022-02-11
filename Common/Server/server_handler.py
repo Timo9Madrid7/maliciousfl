@@ -6,7 +6,7 @@ from Common.Utils.gaussian_moments_account import AutoDP_epsilon, acc_track_eps
 from Common.Utils.evaluate import evaluate_accuracy
 
 # Settings
-import Common.config as config
+import OfflinePack.offline_config as config
 
 # Other Libs
 import torch
