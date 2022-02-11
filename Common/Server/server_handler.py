@@ -250,7 +250,7 @@ class AvgGradientHandler(Handler):
         ddifs = []
         for _ in range(3):
             ddifs_i = []
-            random_samples = torch.randn(samples_size, 1, 28, 28)
+            random_samples = torch.randn(samples_size, 1, 28, 28, device=self.device)
             for client_grad in grad_in:
                 temp_model = deepcopy(self.model)
                 self.upgrade(client_grad.tolist(), temp_model)
