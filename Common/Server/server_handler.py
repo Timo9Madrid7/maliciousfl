@@ -43,7 +43,7 @@ class AvgGradientHandler(Handler):
         self.cluster = hdbscan.HDBSCAN(
             metric='l2', 
             min_cluster_size=2, # the smallest size grouping that you wish to consider a cluster
-            allow_single_cluster=True, #
+            allow_single_cluster=True, # False performs better in terms of Backdoor Attack
             min_samples=2, # how conservative you want you clustering to be
             cluster_selection_epsilon=0.1,
         )
