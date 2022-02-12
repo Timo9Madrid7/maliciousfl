@@ -40,12 +40,18 @@ class AvgGradientHandler(Handler):
         self.bias_index = self.config.bias_index
         self.log_moment = []
 
-        self.cluster = hdbscan.HDBSCAN(
+        self.cluster_base = hdbscan.HDBSCAN(
             metric='l2', 
             min_cluster_size=2, # the smallest size grouping that you wish to consider a cluster
             allow_single_cluster=True, # False performs better in terms of Backdoor Attack
             min_samples=2, # how conservative you want you clustering to be
             cluster_selection_epsilon=0.1,
+        )
+        self.cluster_lastLayer = hdbscan.HDBSCAN(
+            metric='l2', 
+            min_cluster_size=2,
+            allow_single_cluster=True,
+            min_samples=1,
         )
         
         # moments_account:
@@ -87,6 +93,7 @@ class AvgGradientHandler(Handler):
             bengin_id = list(range(self.clients_per_round))
         else:
             bengin_id = self.cosine_distance_filter(grad_in)
+            bengin_id = self.cosine_distance_filter(grad_in[bengin_id][:,-self.config.weight_index::], cluster_sel=1)
 
         # TODO: deepsight implementation
         # with open("./Eva/deepsight/grad_ly.txt", 'a') as f:
@@ -147,14 +154,14 @@ class AvgGradientHandler(Handler):
         return grad_in, S
 
 
-    def cosine_distance_filter(self, grad_in):
+    def cosine_distance_filter(self, grad_in, cluster_sel=0):
         """The HDBSCAN filter based on cosine distance
 
         Args:
             grad_in (list/np.ndarray): the raw input weight_diffs
         """
         distance_matrix = pairwise_distances(grad_in-grad_in.mean(axis=0), metric='cosine')
-        return self.hdbscan_filter(distance_matrix)
+        return self.hdbscan_filter(distance_matrix, cluster_sel=cluster_sel)
 
     def neups_filter(self, grad_in):
         """The HDBSCAN filter based on NEUPS
@@ -302,9 +309,13 @@ class AvgGradientHandler(Handler):
 
         return tes
 
-    def hdbscan_filter(self, inputs):
-        self.cluster.fit(inputs)
-        label = self.cluster.labels_
+    def hdbscan_filter(self, inputs, cluster_sel=0):
+        if cluster_sel == 0:
+            cluster = self.cluster_base
+        elif cluster_sel == 1:
+            cluster = self.cluster_lastLayer
+        cluster.fit(inputs)
+        label = cluster.labels_
         if (label==-1).all():
             bengin_id = np.arange(self.clients_per_round).tolist()
         else:
