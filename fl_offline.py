@@ -106,8 +106,8 @@ if __name__ == "__main__":
         print("client_%s showed %d times"%(config.dp_client, client_dp_counter))
 
     backdoor_test_iter = load_data_backdoor_mnist_test()
-    print("backdoor accuracy: %.3f"%evaluate_accuracy(backdoor_test_iter, model, device))
-    torch.save(model.state_dict(), config.global_models_path)
+    print("backdoor accuracy: %.3f"%evaluate_accuracy(backdoor_test_iter, global_model, device))
+    torch.save(global_model.state_dict(), config.global_models_path)
     
 
 
