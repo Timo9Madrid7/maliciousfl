@@ -1,7 +1,8 @@
 # Utils
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import ResNet, BasicBlock
-from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, load_data_dittoEval_mnist, load_all_test_mnist, load_data_dpclient_mnist, load_data_backdoor_mnist, load_data_backdoor_mnist_test
+from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, load_data_dittoEval_mnist, load_all_test_mnist, load_data_dpclient_mnist
+from Common.Utils.data_loader import load_data_backdoor_mnist, load_data_backdoor_mnist_test, load_data_flipping_mnist, load_data_flipping_mnist_test
 from Common.Utils.data_loader import load_data_noniid_cifar10, load_data_dittoEval_cifar10
 from Common.Utils.evaluate import evaluate_accuracy
 from Common.Server.server_handler import AvgGradientHandler
@@ -34,7 +35,7 @@ if __name__ == "__main__":
 
     print('model:', config.Model, '| dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen,
     '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
-    '| malicious clients:', len(config.malicious_client), '| backdoor clients:', len(config.backdoor_client),
+    '| malicious clients:', len(config.malicious_clients), '| backdoor clients:', len(config.backdoor_clients), '| flipping clients:', len(config.flipping_clients),
     '\n')
 
     client_dp_counter = 0
@@ -52,8 +53,10 @@ if __name__ == "__main__":
             if config.dp_test and config.dp_in and client_id == config.dp_client:
                 client_dp_counter += 1
                 train_iter = load_data_dpclient_mnist(config.dp_client, noniid=config._noniid)
-            elif client_id_counter in config.backdoor_client:
+            elif client_id_counter in config.backdoor_clients:
                 train_iter = load_data_backdoor_mnist(client_id, noniid=config._noniid)
+            elif client_id_counter in config.flipping_clients:
+                train_iter = load_data_flipping_mnist(client_id, noniid=config._noniid)
             else:
                 train_iter = load_data_noniid_mnist(client_id, noniid=config._noniid)
             eval_iter = load_data_dittoEval_mnist(client_id, noniid=config._noniid)
@@ -85,7 +88,7 @@ if __name__ == "__main__":
                     device=device,
                     clippingBound=clippingBound)
 
-                if client_id_counter in config.malicious_client:
+                if client_id_counter in config.malicious_clients:
                     grads_dp, b_dp = client.malicious_random_upload()
                 else:
                     grads_raw = client.fl_train(local_epoch=config.local_epoch, verbose=True)
@@ -104,9 +107,13 @@ if __name__ == "__main__":
     
     if config.dp_test:
         print("client_%s showed %d times"%(config.dp_client, client_dp_counter))
+    if config.backdoor_clients != []:
+        backdoor_test_iter = load_data_backdoor_mnist_test()
+        print("backdoor accuracy: %.3f"%evaluate_accuracy(backdoor_test_iter, global_model, device))
+    if config.flipping_clients != []:
+        flipping_test_iter = load_data_flipping_mnist_test()
+        print("flipping accuracy: %.3f"%evaluate_accuracy(flipping_test_iter, global_model, device))
 
-    backdoor_test_iter = load_data_backdoor_mnist_test()
-    print("backdoor accuracy: %.3f"%evaluate_accuracy(backdoor_test_iter, global_model, device))
     torch.save(global_model.state_dict(), config.global_models_path)
     
 

@@ -48,15 +48,17 @@ dp_in = False
 dp_client = '0'
 
 # byzantine clients
-flipping_clients = []
-malicious_client = []
+malicious_clients = [] # malicious random uploading attacks will override other attacks
+
+backdoor_clients = [] # backdoor attacks will override flipping attacks
+backdoor_pdr = 0
+backdoor_target = 0
+
+flipping_clients = [] # flipping attacks will be overrode by other attacks
+flipping_pdr = 0
 
 reconstruct_inference = False # replace the last client by default
 target = 3
-
-backdoor_client = []
-backdoor_pdr = 0
-backdoor_target = 0
 
 # deepsight
 # the number of parameters of an output layer neuron to neurons of the previous layer
