@@ -92,8 +92,11 @@ class AvgGradientHandler(Handler):
         if self.config.naive_aggregation:
             bengin_id = list(range(self.clients_per_round))
         else:
-            bengin_id = self.cosine_distance_filter(grad_in)
-            bengin_id = self.cosine_distance_filter(grad_in[bengin_id][:,-self.config.weight_index::], cluster_sel=1)
+            filter1_id = self.cosine_distance_filter(grad_in)
+            filter2_id = self.cosine_distance_filter(grad_in[filter1_id][:,-self.config.weight_index::], cluster_sel=1)
+            bengin_id = []
+            for i in filter2_id:
+                bengin_id.append(filter1_id[i])
 
         # TODO: deepsight implementation
         # with open("./Eva/deepsight/grad_ly.txt", 'a') as f:
@@ -110,7 +113,9 @@ class AvgGradientHandler(Handler):
             # naive gradient average
             grad_in = grad_in[bengin_id].mean(axis=0)
             S = 0
-            print("clip_bound: inf | used id: ", bengin_id)
+            print("clip_bound: inf")
+            print("filter 1 id:", filter1_id)
+            print("filter 2 id:", bengin_id)
         else:
             # noise compensation
             if self.dpcompen:
@@ -132,7 +137,9 @@ class AvgGradientHandler(Handler):
                     sigma=sigma, 
                     account_method=self.account_method)
                 print("epsilon: %.2f | delta: %.6f | "%(cur_eps, cur_delta), end="")
-            print("clip_bound: %.3f | used id: "%S, bengin_id)
+            print("clip_bound: %.3f "%S)
+            print("filter 1 id:", filter1_id)
+            print("filter 2 id:", bengin_id)
             self.epsilon_history.append(cur_eps)
             
             # gradients average
