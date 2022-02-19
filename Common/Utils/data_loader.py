@@ -1,4 +1,4 @@
-from Common.Utils.backdoorInjection import backdoor_mnist, backdoor_mnist_test
+from Common.Utils.backdoorInjection import backdoor_mnist, backdoor_mnist_test, flipping_mnist, flipping_mnist_test
 
 import torch
 import torchvision
@@ -89,6 +89,24 @@ def load_data_backdoor_mnist_test(batch=128, path="./Data/MNIST/"):
     test = list(map(backdoor_mnist_test, test))
     test_iter = torch.utils.data.DataLoader(test, batch_size=batch, shuffle=True, num_workers=0)
     return test_iter
+
+def load_data_flipping_mnist(client_index, batch=128, noniid=True):
+    if noniid:
+        path="./Data/MNIST/noniid"
+    else:
+        path="./Data/MNIST/iid"
+    data = torch.load(path+'/'+'client_eval_'+client_index+'.pt')
+    data = list(map(flipping_mnist, data))
+    return torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
+
+def load_data_flipping_mnist_test(batch=128, path="./Data/MNIST/"):
+    transforms = torchvision.transforms
+    test = torchvision.datasets.MNIST(root=path, train=False, download=False, transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ]))
+    test = list(map(flipping_mnist_test, test))
+    return torch.utils.data.DataLoader(test, batch_size=batch, shuffle=True, num_workers=0)
 
 def load_data_usps(id, batch=None, path=None):
     data = torch.load(path+'/'+'usps_train_'+str(id)+'_.pt')
