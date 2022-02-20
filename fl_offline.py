@@ -5,7 +5,8 @@ from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, lo
 from Common.Utils.data_loader import load_data_backdoor_mnist, load_data_backdoor_mnist_test, load_data_flipping_mnist, load_data_flipping_mnist_test
 from Common.Utils.data_loader import load_data_noniid_cifar10, load_data_dittoEval_cifar10
 from Common.Utils.evaluate import evaluate_accuracy
-from Common.Server.server_handler import AvgGradientHandler
+from Common.Server.server_cryptoHandler import AvgGradientHandler
+from Crypto.s2pc import S2PC
 
 # Offline Packages
 import OfflinePack.offline_config as config
@@ -15,6 +16,7 @@ from OfflinePack.infer_client import InferClient
 # Other Libs
 import torch
 import random
+import numpy as np
 from copy import deepcopy
 
 if __name__ == "__main__":
@@ -30,8 +32,10 @@ if __name__ == "__main__":
     else:
         test_iter = load_all_test_mnist()
     aggregator = AvgGradientHandler(config, global_model, device, test_iter)
-
     clippingBound = config.initClippingBound
+
+    # secure two-party computation initialize
+    s2pc = S2PC(num_clients=config.num_workers)
 
     print('model:', config.Model, '| dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen,
     '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
@@ -48,6 +52,8 @@ if __name__ == "__main__":
         client_ids_ = random.sample(range(120), config.num_workers)
         b_list_ = []
         grads_list_ = []
+        grads_ly_list_ = []
+        norms_list_ = []
         for client_id in client_ids_:
             client_id = str(client_id)
             if config.dp_test and config.dp_in and client_id == config.dp_client:
@@ -94,15 +100,43 @@ if __name__ == "__main__":
                     grads_raw = client.fl_train(local_epoch=config.local_epoch, verbose=True)
                     grads_dp, b_dp = client.adaptiveClipping(grads_raw)
 
-            grads_list_.append(grads_dp)
-            b_list_.append(b_dp)
+            grads_norm = np.linalg.norm(grads_dp)
+            grads_unit = list(map(lambda x:x/grads_norm, grads_dp))
+            grads_norm_lastLayer = np.linalg.norm(grads_dp[-config.weight_index::])
+            grads_unit_lastLayer = list(map(lambda x:x/grads_norm_lastLayer, grads_dp[-config.weight_index::]))
+            norm_share = s2pc.secrete_share(secrete=grads_norm)
+            grads_share = s2pc.secrete_share(secrete=grads_unit)
+            grads_ly_share = s2pc.secrete_share(secrete=grads_unit_lastLayer)
+            b_share = s2pc.secrete_share(secrete=b_dp)
+            
+            grads_list_.append(grads_share)
+            grads_ly_list_.append(grads_ly_share)
+            norms_list_.append(norm_share)
+            b_list_.append(b_share)
             client_id_counter += 1
         
         # Server
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Server>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-        grads_avg, clippingBound = aggregator.computation(
-            grads_list_, b_list_, 
-            clippingBound, config.gamma, config.blr)
+        cosinedist_hidden_1 = aggregator.cosinedist_s2pc(grads_list_)
+        cosinedist_plain_1 = s2pc.distanceMatrix_reconstruct(cosinedist_hidden_1)
+        filter1_id = aggregator.cosine_distance_filter(np.array(cosinedist_plain_1), cluster_sel=0)
+        print("filter 1 id:", filter1_id)
+        grads_ly_filtered = []
+        for _id in filter1_id:
+            grads_ly_filtered.append(grads_ly_list_[_id])
+        cosinedist_hidden_2 = aggregator.cosinedist_s2pc(grads_ly_filtered)
+        cosinedist_plain_2 = s2pc.distanceMatrix_reconstruct(cosinedist_hidden_2)
+        filter2_id = aggregator.cosine_distance_filter(np.array(cosinedist_plain_2), cluster_sel=1)
+        benign_id = []
+        for _id in filter2_id:
+            benign_id.append(filter1_id[_id])
+        print("filter 2 id:", benign_id)
+        gradsAvg_hidden, bAvg_hidden = aggregator.aggregation_s2pc(grads_list_, norms_list_, b_list_, benign_id)
+        gradsAvg_plain, bAvg_plain = s2pc.avg_reconstruct(gradsAvg_hidden, bAvg_hidden)
+        clippingBound = aggregator.adaptive_clipping(bAvg_plain, clippingBound, config.gamma, config.blr)
+        test_accuracy = aggregator.globalmodel_update(gradsAvg_plain.cpu().numpy().tolist())
+        if test_accuracy != None: 
+            print("global accuracy:%.3f"%test_accuracy)
         print()
     
     if config.dp_test:
