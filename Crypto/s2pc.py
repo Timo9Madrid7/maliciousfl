@@ -39,12 +39,13 @@ class S2PC():
         print("s2pc cosine distance reconstructed %.1f"%(time.time()-start))
         return matrix
 
-    def gradsAvg_reconstruct(self, grads_tensor):
+    def avg_reconstruct(self, grads_tensor, b_tensor):
         print(''.join([',']*self.num_clients), end='')
         start = time.time()
         grads_avg = grads_tensor.reconstruct()
+        b_avg = b_tensor.reconstruct()
         print("s2pc aggregation reconstructed %.1f"%(time.time()-start))
-        return grads_avg
+        return grads_avg, b_avg
 
     def secrete_reconstruct(self, share):
         return share.reconstruct()
