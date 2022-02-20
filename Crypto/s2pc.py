@@ -29,6 +29,7 @@ class S2PC():
         return secrete.share(session=self.session)
 
     def distanceMatrix_reconstruct(self, distance_matrix):
+        self.num_clients = len(distance_matrix)
         start = time.time()
         matrix = [[0 for _ in range(self.num_clients)] for _ in range(self.num_clients)]
         for i in range(self.num_clients):
