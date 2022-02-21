@@ -1,1 +1,1 @@
-python model_prepare.py & python fl_offline.py
+python model_prepare.py & python fl_offline_sympc.py

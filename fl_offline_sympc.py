@@ -5,8 +5,8 @@ from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, lo
 from Common.Utils.data_loader import load_data_backdoor_mnist, load_data_backdoor_mnist_test, load_data_flipping_mnist, load_data_flipping_mnist_test
 from Common.Utils.data_loader import load_data_noniid_cifar10, load_data_dittoEval_cifar10
 from Common.Utils.evaluate import evaluate_accuracy
-from Common.Server.server_cryptoHandler import AvgGradientHandler
-from Crypto.s2pc import S2PC
+from Common.Server.server_sympcHandler import AvgGradientHandler
+from Crypto.s2pcSyMPC import S2PC
 
 # Offline Packages
 import OfflinePack.offline_config as config
