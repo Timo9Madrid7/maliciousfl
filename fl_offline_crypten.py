@@ -122,7 +122,7 @@ if __name__ == "__main__":
         for _id in filter1_id:
             grads_ly_filtered.append(grads_ly_list_[_id])
         cosine_distance_2, _ = s2pc.cosinedist_s2pc(grads_ly_filtered)
-        filter2_id = aggregator.cosine_distance_filter(np.array(grads_ly_filtered), cluster_sel=1)
+        filter2_id = aggregator.cosine_distance_filter(np.array(cosine_distance_2), cluster_sel=1)
         benign_id = []
         for _id in filter2_id:
             benign_id.append(filter1_id[_id])
