@@ -17,7 +17,7 @@ class S2PC():
         distance_matrix = [[0 for _ in range(len(grads_secrete))] for _ in range(len(grads_secrete))]
         for i in range(len(grads_secrete)):
             for j in range(i+1, len(grads_secrete)):
-                distance_matrix[i][j] = distance_matrix[j][i] = 1 - ((grad_share[i]-grad_share_mean)*(grad_share[j]-grad_share_mean)).sum().get_plain_text().item()
+                distance_matrix[i][j] = distance_matrix[j][i] = 1 - ((grad_share[i]-grad_share_mean).dot(grad_share[j]-grad_share_mean)).get_plain_text().item()
         
         if correctness_check:
             distance_matrix_compare = self.cosinedist_correctness_check(grads_secrete)
@@ -52,6 +52,6 @@ class S2PC():
         distance_matrix = [[0 for _ in range(len(grads_secrete))] for _ in range(len(grads_secrete))]
         for i in range(len(grads_secrete)):
             for j in range(i+1, len(grads_secrete)):
-                 distance_matrix[i][j] = distance_matrix[j][i] = 1 - ((grads_secrete[i]-grads_secrete_mean)*(grads_secrete[j]-grads_secrete_mean)).sum()
+                 distance_matrix[i][j] = distance_matrix[j][i] = 1 - ((grads_secrete[i]-grads_secrete_mean).dot(grads_secrete[j]-grads_secrete_mean))
         return distance_matrix
     
