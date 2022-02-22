@@ -18,6 +18,8 @@ import torch
 import random
 import numpy as np
 from copy import deepcopy
+import warnings
+warnings.filterwarnings("ignore", message="__floordiv__ is deprecated")
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
@@ -104,15 +106,11 @@ if __name__ == "__main__":
             grads_unit = list(map(lambda x:x/grads_norm, grads_dp))
             grads_norm_lastLayer = np.linalg.norm(grads_dp[-config.weight_index::])
             grads_unit_lastLayer = list(map(lambda x:x/grads_norm_lastLayer, grads_dp[-config.weight_index::]))
-            norm_share = s2pc.secrete_share(secrete=grads_norm)
-            grads_share = s2pc.secrete_share(secrete=grads_unit)
-            grads_ly_share = s2pc.secrete_share(secrete=grads_unit_lastLayer)
-            b_share = s2pc.secrete_share(secrete=b_dp)
             
-            grads_list_.append(grads_share)
-            grads_ly_list_.append(grads_ly_share)
-            norms_list_.append(norm_share)
-            b_list_.append(b_share)
+            grads_list_.append(grads_unit)
+            grads_ly_list_.append(grads_unit_lastLayer)
+            norms_list_.append(grads_norm)
+            b_list_.append(b_dp)
             client_id_counter += 1
         
         # Server
@@ -131,7 +129,7 @@ if __name__ == "__main__":
         print("filter 2 id:", benign_id)
         grads_avg, bs_avg = s2pc.aggregation_s2pc(grads_list_, norms_list_, b_list_, benign_id)
         clippingBound = aggregator.adaptive_clipping(bs_avg, clippingBound, config.gamma, config.blr)
-        test_accuracy = aggregator.globalmodel_update(grads_avg.cpu().numpy().tolist())
+        test_accuracy = aggregator.globalmodel_update(grads_avg.tolist())
         if test_accuracy != None: 
             print("global accuracy:%.3f"%test_accuracy)
         print()
