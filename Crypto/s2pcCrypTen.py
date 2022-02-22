@@ -33,7 +33,7 @@ class S2PC():
             return bs_sum
         bs_sum, _ = aggregation(grads_secrete, norms_secrete, bs_secrete, benign_id)
         grads_sum = crypten.load('./temp.pt')
-        return grads_sum, bs_sum
+        return grads_sum.div(len(benign_id)), bs_sum/len(benign_id)
     
 
     
