@@ -12,7 +12,7 @@ class S2PC():
 
     @mpc.run_multiprocess(world_size=2)
     def cosinedist_s2pc(self, grads_secrete:list, correctness_check=False):
-        grad_share = crypten.cryptensor(grads_secrete, precision=30)
+        grad_share = crypten.cryptensor(grads_secrete, precision=28)
         grad_share_mean = grad_share.mean(axis=0)
         distance_matrix = [[0 for _ in range(len(grads_secrete))] for _ in range(len(grads_secrete))]
         for i in range(len(grads_secrete)):
