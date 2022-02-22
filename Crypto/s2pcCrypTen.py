@@ -18,7 +18,7 @@ class S2PC():
                 distance_matrix[i][j] = distance_matrix[j][i] = (grad_share[i]*grad_share[j]).sum().get_plain_text().item()
         return distance_matrix
 
-    def aggregation_s2pc(grads_secrete:list, norms_secrete:list, bs_secrete:list, benign_id:list):
+    def aggregation_s2pc(self, grads_secrete:list, norms_secrete:list, bs_secrete:list, benign_id:list):
         @mpc.run_multiprocess(world_size=2)
         def aggregation(grads_secrete:list, norms_secrete:list, bs_secrete:list, benign_id:list):
             grads_share = crypten.cryptensor(grads_secrete, precision=24)
