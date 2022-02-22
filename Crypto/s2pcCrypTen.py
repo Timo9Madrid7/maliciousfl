@@ -19,7 +19,7 @@ class S2PC():
             for j in range(i+1, len(grads_secrete)):
                 distance_matrix[i][j] = distance_matrix[j][i] = 1 - ((grad_share[i]-grad_share_mean).dot(grad_share[j]-grad_share_mean)).get_plain_text().item()
         
-        if correctness_check:
+        if correctness_check and comm.get().get_rank():
             distance_matrix_compare = self.cosinedist_correctness_check(grads_secrete)
             for i in range(len(grads_secrete)):
                 print("| ", end="")
