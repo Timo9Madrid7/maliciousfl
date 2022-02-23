@@ -11,7 +11,7 @@ class S2PC():
         torch.set_num_threads(1)
 
     @mpc.run_multiprocess(world_size=2)
-    def cosinedist_s2pc(self, grads_secrete:list, precision=31, correctness_check=False):
+    def cosinedist_s2pc(self, grads_secrete:list, precision=28, correctness_check=False):
         grads_secrete = (torch.tensor(grads_secrete).mul(2**precision)).type(torch.int64)
         grad_share = crypten.cryptensor(grads_secrete)
         grad_share_mean = grad_share.mean(axis=0)
@@ -41,10 +41,10 @@ class S2PC():
                 grads_sum += grads_share[_id].mul(norms_share[_id])
             bs_sum = (bs_share[benign_id] > 0).sum().get_plain_text().item()
             grads_sum = grads_sum.get_plain_text()
-            np.savetxt("./temp.txt", grads_sum)
+            torch.save(grads_sum.type(torch.float64), "./temp.pt")
             return bs_sum
         bs_sum, _ = aggregation(grads_secrete, norms_secrete, bs_secrete, benign_id, precision)
-        grads_sum = np.loadtxt('./temp.txt')
+        grads_sum = torch.load('./temp.pt')
         return grads_sum/(len(benign_id)), bs_sum/len(benign_id)
     
     def cosinedist_correctness_check(self, grads_secrete:list):
