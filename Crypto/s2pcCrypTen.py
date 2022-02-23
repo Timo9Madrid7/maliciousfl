@@ -12,13 +12,13 @@ class S2PC():
 
     @mpc.run_multiprocess(world_size=2)
     def cosinedist_s2pc(self, grads_secrete:list, precision=28, correctness_check=False):
-        grads_secrete = (torch.tensor(grads_secrete).mul(2**precision)).type(torch.int64)
-        grad_share = crypten.cryptensor(grads_secrete)
+        grad_share = crypten.cryptensor(grads_secrete, precision=precision)
         grad_share_mean = grad_share.mean(axis=0)
         distance_matrix = [[0 for _ in range(len(grads_secrete))] for _ in range(len(grads_secrete))]
         for i in range(len(grads_secrete)):
             for j in range(i+1, len(grads_secrete)):
-                distance_matrix[i][j] = distance_matrix[j][i] = 1 - ((grad_share[i]-grad_share_mean).dot(grad_share[j]-grad_share_mean)).get_plain_text().mul(2**(2*-precision)).item()
+                distance_matrix[i][j] = distance_matrix[j][i] = torch.subtract(
+                  torch.tensor([1.]), ((grad_share[i]-grad_share_mean).dot(grad_share[j]-grad_share_mean)).get_plain_text()).item()
         
         if correctness_check and comm.get().get_rank():
             distance_matrix_compare = self.cosinedist_correctness_check(grads_secrete)
