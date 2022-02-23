@@ -11,7 +11,7 @@ class S2PC():
         torch.set_num_threads(1)
 
     @mpc.run_multiprocess(world_size=2)
-    def cosinedist_s2pc(self, grads_secrete:list, precision=28, correctness_check=False):
+    def cosinedist_s2pc(self, grads_secrete:list, precision=24, correctness_check=False):
         grad_share = crypten.cryptensor(grads_secrete, precision=precision)
         grad_share_mean = grad_share.mean(axis=0)
         distance_matrix = [[0 for _ in range(len(grads_secrete))] for _ in range(len(grads_secrete))]
