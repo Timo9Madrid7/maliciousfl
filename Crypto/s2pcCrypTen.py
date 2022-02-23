@@ -45,7 +45,7 @@ class S2PC():
             return bs_sum
         
         grads_secrete = (torch.tensor(grads_secrete).mul(2**precision)).type(torch.int64)
-        norms_share = (torch.tensor(norms_share).mul(2**precision)).type(torch.int64)
+        norms_secrete = (torch.tensor(norms_secrete).mul(2**precision)).type(torch.int64)
         bs_sum, _ = aggregation(grads_secrete, norms_secrete, bs_secrete, benign_id, precision)
         grads_sum = np.loadtxt('./temp.txt')
         return grads_sum/(len(benign_id)), bs_sum/len(benign_id)
