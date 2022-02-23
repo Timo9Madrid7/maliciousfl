@@ -11,7 +11,7 @@ class S2PC():
         torch.set_num_threads(1)
 
     @mpc.run_multiprocess(world_size=2)
-    def cosinedist_s2pc(self, grads_secrete:list, precision=32, correctness_check=False):
+    def cosinedist_s2pc(self, grads_secrete:list, precision=31, correctness_check=False):
         grads_secrete = (torch.tensor(grads_secrete).mul(2**precision)).type(torch.int64)
         grad_share = crypten.cryptensor(grads_secrete)
         grad_share_mean = grad_share.mean(axis=0)
@@ -30,22 +30,19 @@ class S2PC():
         
         return distance_matrix
 
-    def aggregation_s2pc(self, grads_secrete:list, norms_secrete:list, bs_secrete:list, benign_id:list, precision=32):
+    def aggregation_s2pc(self, grads_secrete:list, norms_secrete:list, bs_secrete:list, benign_id:list, precision=24):
         @mpc.run_multiprocess(world_size=2)
         def aggregation(grads_secrete:list, norms_secrete:list, bs_secrete:list, benign_id:list, precision:int):
-            grads_share = crypten.cryptensor(grads_secrete)
-            norms_share = crypten.cryptensor(norms_secrete)
+            grads_share = crypten.cryptensor(grads_secrete, precision=precision)
+            norms_share = crypten.cryptensor(norms_secrete, precision=precision)
             bs_share = crypten.cryptensor(bs_secrete)
             grads_sum = 0
             for _id in benign_id:
                 grads_sum += grads_share[_id].mul(norms_share[_id])
             bs_sum = (bs_share[benign_id] > 0).sum().get_plain_text().item()
-            grads_sum = grads_sum.get_plain_text().mul(2**(2*-precision))
+            grads_sum = grads_sum.get_plain_text()
             np.savetxt("./temp.txt", grads_sum)
             return bs_sum
-        
-        grads_secrete = (torch.tensor(grads_secrete).mul(2**precision)).type(torch.int64)
-        norms_secrete = (torch.tensor(norms_secrete).mul(2**precision)).type(torch.int64)
         bs_sum, _ = aggregation(grads_secrete, norms_secrete, bs_secrete, benign_id, precision)
         grads_sum = np.loadtxt('./temp.txt')
         return grads_sum/(len(benign_id)), bs_sum/len(benign_id)
