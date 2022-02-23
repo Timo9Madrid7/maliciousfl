@@ -2,7 +2,7 @@
 
 ## Start
 
-### CrypTen
+### CrypTen (Linux Only)
 If choosing `CrypTen`, make sure to comment `crypten/init.py` from `line 194` to `202` before running `python fl_offline_crypten.py`, since it currently doesn't support GPU random generator.
 
 In addition (not necessary), 
@@ -11,7 +11,7 @@ In addition (not necessary),
 
 Open cmd and run commands:
 ```cmd
-python model_prepare.py & python fl_offline_crypten.py
+python model_prepare.py && python fl_offline_crypten.py
 ```
 
 ### SyMPC + PySyft
