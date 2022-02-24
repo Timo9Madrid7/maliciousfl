@@ -11,38 +11,8 @@ class OfflineClient(WorkerBaseDitto):
         self, client_id, train_iter, eval_iter, 
         model, loss_func, optimizer, 
         local_model, local_loss_func, local_optimizer,
-        config, device, 
-        clippingBound):
+        config, device):
         super().__init__(client_id, train_iter, eval_iter, model, loss_func, optimizer, local_model, local_loss_func, local_optimizer, config, device)
-
-        self.dpoff = self.config._dpoff
-        self.clippingBound = clippingBound # initial clipping bound for a client
-        self.grad_noise_sigma = self.config.grad_noise_sigma
-        self.b_noise_std = self.config.b_noise_std
-        self.clients_per_round = self.config.num_workers
-
-    def adaptiveClipping(self, input_gradients):
-        '''
-        To clip the input gradient, if its norm is larger than the setting
-        '''
-        if self.dpoff: # don't clip
-            return np.array(input_gradients).tolist(), 1
-        # else: do clipping+noising
-        gradients = np.array(input_gradients)
-        # --- adaptive noise calculation ---
-        if self.grad_noise_sigma==0:
-            grad_noise = 0
-            b_noise = 0
-        else: 
-            grad_noise_std = self.grad_noise_sigma * self.clippingBound # deviation for gradients
-            b_noise = np.random.normal(0, self.b_noise_std/np.sqrt(self.clients_per_round))
-            grad_noise = np.random.normal(0, grad_noise_std/np.sqrt(self.clients_per_round), size=gradients.shape)
-        # --- adaptive noise calculation ---
-        norm = np.linalg.norm(gradients)
-        if norm > self.clippingBound:
-            return (gradients * self.clippingBound/np.linalg.norm(gradients) + grad_noise).tolist(), 0 + b_noise
-        else:
-            return (gradients + grad_noise).tolist(), 1 + b_noise
 
     def update(self):
         pass
@@ -55,10 +25,6 @@ class OfflineClient(WorkerBaseDitto):
     
     def malicious_random_upload(self, model="LeNet"):
         if model == "LeNet":
-            gradients,b = np.random.normal(self.clippingBound, 1, size=(44426,)), 1
+            return np.random.normal(0, 1, size=(44426,))
         elif model == "ResNet":
-            gradients,b = np.random.normal(self.clippingBound, 1, size=(269722,)), 1
-        if not self.dpoff:
-            gradients += np.random.normal(0, self.grad_noise_sigma*self.clippingBound/np.sqrt(self.clients_per_round), size=gradients.shape)
-            b += np.random.normal(0, self.b_noise_std/np.sqrt(self.clients_per_round))
-        return gradients.tolist(), b
+            return np.random.normal(0, 1, size=(269722,))

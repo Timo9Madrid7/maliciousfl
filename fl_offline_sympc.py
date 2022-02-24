@@ -32,13 +32,12 @@ if __name__ == "__main__":
     else:
         test_iter = load_all_test_mnist()
     aggregator = AvgGradientHandler(config, global_model, device, test_iter)
-    clippingBound = config.initClippingBound
 
     # secure two-party computation initialize
     s2pc = S2PC(num_clients=config.num_workers)
 
-    print('model:', config.Model, '| dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen,
-    '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
+    print('model:', config.Model, 
+    '| dpoff:', config._dpoff, '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
     '| malicious clients:', len(config.malicious_clients), '| backdoor clients:', len(config.backdoor_clients), '| flipping clients:', len(config.flipping_clients),
     '\n')
 
@@ -50,7 +49,6 @@ if __name__ == "__main__":
         # Clients
         client_id_counter = 0
         client_ids_ = random.sample(range(120), config.num_workers)
-        b_list_ = []
         grads_list_ = []
         grads_ly_list_ = []
         norms_list_ = []
@@ -77,8 +75,7 @@ if __name__ == "__main__":
             if config.reconstruct_inference and int(client_id) == client_ids_[-1]:
                 train_iter, _ = load_data_mnist(0, 128, path='./Data/MNIST')
                 infer_client = InferClient(model, loss_func, optimizer, train_iter, config, target=config.target, device=device)
-                grads_raw = infer_client.fl_train()
-                grads_dp, b_dp = infer_client.adaptiveClipping(grads_raw)
+                grads_upload = infer_client.fl_train()
             else:
                 client = OfflineClient(
                     client_id=client_id,
@@ -91,28 +88,24 @@ if __name__ == "__main__":
                     local_loss_func=local_loss_func,
                     local_optimizer=local_optimizer,
                     config=config,
-                    device=device,
-                    clippingBound=clippingBound)
+                    device=device)
 
                 if client_id_counter in config.malicious_clients:
-                    grads_dp, b_dp = client.malicious_random_upload()
+                    grads_upload = client.malicious_random_upload()
                 else:
-                    grads_raw = client.fl_train(local_epoch=config.local_epoch, verbose=True)
-                    grads_dp, b_dp = client.adaptiveClipping(grads_raw)
+                    grads_upload = client.fl_train(local_epoch=config.local_epoch, verbose=True)
 
-            grads_norm = np.linalg.norm(grads_dp)
-            grads_unit = list(map(lambda x:x/grads_norm, grads_dp))
-            grads_norm_lastLayer = np.linalg.norm(grads_dp[-config.weight_index::])
-            grads_unit_lastLayer = list(map(lambda x:x/grads_norm_lastLayer, grads_dp[-config.weight_index::]))
+            grads_norm = np.linalg.norm(grads_upload)
+            grads_unit = list(map(lambda x:x/grads_norm, grads_upload))
+            grads_norm_lastLayer = np.linalg.norm(grads_upload[-config.weight_index::])
+            grads_unit_lastLayer = list(map(lambda x:x/grads_norm_lastLayer, grads_upload[-config.weight_index::]))
             norm_share = s2pc.secrete_share(secrete=grads_norm)
             grads_share = s2pc.secrete_share(secrete=grads_unit)
             grads_ly_share = s2pc.secrete_share(secrete=grads_unit_lastLayer)
-            b_share = s2pc.secrete_share(secrete=b_dp)
             
             grads_list_.append(grads_share)
             grads_ly_list_.append(grads_ly_share)
             norms_list_.append(norm_share)
-            b_list_.append(b_share)
             client_id_counter += 1
         
         # Server
@@ -121,6 +114,7 @@ if __name__ == "__main__":
         cosinedist_plain_1 = s2pc.distanceMatrix_reconstruct(cosinedist_hidden_1)
         filter1_id = aggregator.cosine_distance_filter(np.array(cosinedist_plain_1), cluster_sel=0)
         print("filter 1 id:", filter1_id)
+
         grads_ly_filtered = []
         for _id in filter1_id:
             grads_ly_filtered.append(grads_ly_list_[_id])
@@ -131,9 +125,11 @@ if __name__ == "__main__":
         for _id in filter2_id:
             benign_id.append(filter1_id[_id])
         print("filter 2 id:", benign_id)
-        gradsAvg_hidden, bAvg_hidden = aggregator.aggregation_s2pc(grads_list_, norms_list_, b_list_, benign_id)
-        gradsAvg_plain, bAvg_plain = s2pc.avg_reconstruct(gradsAvg_hidden, bAvg_hidden)
-        clippingBound = aggregator.adaptive_clipping(bAvg_plain, clippingBound, config.gamma, config.blr)
+
+        gradsSum_plain, bSum_plain = aggregator.aggregation_s2pc_reconstruct(grads_list_, norms_list_, benign_id, s2pc)
+        # gradsAvg_plain = aggregator.add_dpNoise(gradsSum_plain, bSum_plain, len(benign_id), verbose=True) # TODO: noise adding
+        gradsAvg_plain, bAvg_plain = gradsSum_plain/len(benign_id), bSum_plain/len(benign_id)
+        aggregator.update_clipBound(bAvg_plain)
         test_accuracy = aggregator.globalmodel_update(gradsAvg_plain.cpu().numpy().tolist())
         if test_accuracy != None: 
             print("global accuracy:%.3f"%test_accuracy)

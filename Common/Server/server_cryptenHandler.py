@@ -31,7 +31,6 @@ class AvgGradientHandler(Handler):
 
         self.total_number = config.total_number_clients
         self.dpoff = self.config._dpoff
-        self.dpcompen = self.config._dpcompen
         self.grad_noise_sigma = self.config.grad_noise_sigma
         self.b_noise_std = self.config.b_noise_std
         self.delta = self.config.delta
