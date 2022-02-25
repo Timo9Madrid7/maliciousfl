@@ -1,4 +1,4 @@
-num_epochs = 21
+num_epochs = 10
 total_number_clients = 200
 num_workers = 20
 
@@ -34,7 +34,7 @@ grad_noise_sigma = 1.005
 # data distribution
 _noniid = False # q=0.3 by default
 # differential privacy parameters
-_dpoff = False
+_dpoff = True
 delta = 1e-4
 account_method = "autodp"
 
