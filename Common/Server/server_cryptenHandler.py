@@ -29,7 +29,8 @@ class AvgGradientHandler(Handler):
         self.device = device
         self.test_iter = test_iter
 
-        self.total_number = config.total_number_clients
+        self.total_number = self.config.total_number_clients
+        self.clip_bound = self.config.initClippingBound
         self.dpoff = self.config._dpoff
         self.grad_noise_sigma = self.config.grad_noise_sigma
         self.b_noise_std = self.config.b_noise_std
@@ -77,8 +78,13 @@ class AvgGradientHandler(Handler):
             self.accuracy_history.append(test_accuracy)
         return test_accuracy
 
-    def adaptive_clipping(self, b_avg, clip_bound, clip_ratio, lr):  
-        return clip_bound * np.exp(-lr*(min(b_avg,1)-clip_ratio))
+    def get_clipBound(self):
+        return self.clip_bound
+
+    def update_clipBound(self, bs_avg, verbose=False):
+        self.clip_bound = (self.clip_bound * np.exp(-self.config.blr*(min(bs_avg,1)-self.config.gamma))).item()
+        if verbose:
+            print("next round clipping boundary: %.2f"%self.clip_bound)
 
     def hdbscan_filter(self, inputs, cluster_sel=0):
         if cluster_sel == 0:

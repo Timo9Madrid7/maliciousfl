@@ -30,22 +30,23 @@ class S2PC():
         
         return distance_matrix
 
-    def aggregation_s2pc(self, grads_secrete:list, norms_secrete:list, bs_secrete:list, benign_id:list, precision=24):
+    def aggregation_s2pc(self, grads_secrete:list, norms_secrete:list, clip_bound:float, benign_id:list, precision=24):
         @mpc.run_multiprocess(world_size=2)
-        def aggregation(grads_secrete:list, norms_secrete:list, bs_secrete:list, benign_id:list, precision:int):
+        def aggregation(grads_secrete:list, norms_secrete:list, clip_bound:float, benign_id:list, precision:int):
             grads_share = crypten.cryptensor(grads_secrete, precision=precision)
             norms_share = crypten.cryptensor(norms_secrete, precision=precision)
-            bs_share = crypten.cryptensor(bs_secrete)
             grads_sum = 0
             for _id in benign_id:
-                grads_sum += grads_share[_id].mul(norms_share[_id])
-            bs_sum = (bs_share[benign_id] > 0).sum().get_plain_text().item()
+                if (norms_share[_id]<=clip_bound).get_plain_text().item(): 
+                    grads_sum += grads_share[_id].mul(norms_share[_id])
+                else:
+                    grads_sum += grads_share[_id].mul(torch.tensor(clip_bound))
             grads_sum = grads_sum.get_plain_text()
             torch.save(grads_sum.type(torch.float64), "./temp.pt")
-            return bs_sum
-        bs_sum, _ = aggregation(grads_secrete, norms_secrete, bs_secrete, benign_id, precision)
+            return (crypten.cryptensor(norms_secrete)[benign_id] <= clip_bound).sum().get_plain_text().item()
+        bs_sum, _ = aggregation(grads_secrete, norms_secrete, clip_bound, benign_id, precision)
         grads_sum = torch.load('./temp.pt')
-        return grads_sum/(len(benign_id)), bs_sum/len(benign_id)
+        return grads_sum, bs_sum
     
     def cosinedist_correctness_check(self, grads_secrete:list):
         grads_secrete = np.array(grads_secrete)

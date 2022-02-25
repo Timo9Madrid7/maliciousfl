@@ -131,10 +131,14 @@ class AvgGradientHandler(Handler):
             layer_diff = grad_in[self._level_length[layer]:self._level_length[layer + 1]]
             param.data += torch.tensor(layer_diff, device=self.device).view(param.data.size())
             layer += 1
+    
+    def get_clipBound(self):
+        return self.clip_bound
 
-    def update_clipBound(self, bs_avg, verbose=True):
+    def update_clipBound(self, bs_avg, verbose=False):
         self.clip_bound = (self.clip_bound * np.exp(-self.config.blr*(min(bs_avg,1)-self.config.gamma))).item()
-        print("next round clipping boundary: %.2f"%self.clip_bound)
+        if verbose:
+            print("next round clipping boundary: %.2f"%self.clip_bound)
 
     def add_dpNoise(self, grads_sum, bs_sum, num_used, verbose=True):
         if not self.dpoff:
