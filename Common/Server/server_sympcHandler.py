@@ -57,7 +57,8 @@ class AvgGradientHandler(Handler):
         
         # moments_account:
         if self.grad_noise_sigma:
-            self.sigma = (self.grad_noise_sigma**(-2) + (2*self.b_noise_std)**(-2))**(-0.5)
+            # self.sigma = (self.grad_noise_sigma**(-2) + (2*self.b_noise_std)**(-2))**(-0.5)
+            self.sigma = self.grad_noise_sigma
         else:
             self.sigma = None
         self.track_eps = AutoDP_epsilon(self.delta)
