@@ -127,8 +127,7 @@ if __name__ == "__main__":
         print("filter 2 id:", benign_id)
 
         gradsSum_plain, bSum_plain = aggregator.aggregation_s2pc_reconstruct(grads_list_, norms_list_, benign_id, s2pc)
-        # gradsAvg_plain = aggregator.add_dpNoise(gradsSum_plain, bSum_plain, len(benign_id), verbose=True) # TODO: noise adding
-        gradsAvg_plain, bAvg_plain = gradsSum_plain/len(benign_id), bSum_plain/len(benign_id)
+        gradsAvg_plain, bAvg_plain = gradsSum_plain/len(benign_id), bSum_plain/len(benign_id) # TODO: noise adding
         aggregator.update_clipBound(bAvg_plain)
         test_accuracy = aggregator.globalmodel_update(gradsAvg_plain.cpu().numpy().tolist())
         if test_accuracy != None: 
