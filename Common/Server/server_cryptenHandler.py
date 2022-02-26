@@ -57,7 +57,8 @@ class AvgGradientHandler(Handler):
         
         # moments_account:
         if self.grad_noise_sigma:
-            self.sigma = (self.grad_noise_sigma**(-2) + (2*self.b_noise_std)**(-2))**(-0.5)
+            # self.sigma = (self.grad_noise_sigma**(-2) + (2*self.b_noise_std)**(-2))**(-0.5)
+            self.sigma = self.grad_noise_sigma
         else:
             self.sigma = None
         self.track_eps = AutoDP_epsilon(self.delta)
@@ -111,3 +112,23 @@ class AvgGradientHandler(Handler):
             layer_diff = grad_in[self._level_length[layer]:self._level_length[layer + 1]]
             param.data += torch.tensor(layer_diff, device=self.device).view(param.data.size())
             layer += 1
+
+    def add_dpNoise(self, grads_sum, bs_sum, num_used, verbose=True):
+        if not self.dpoff:
+            grads_sum += torch.normal(mean=0, std=self.grad_noise_sigma*self.clip_bound, size=grads_sum.shape)
+            # bs_sum += np.random.normal(0, self.b_noise_std)
+        if self.sigma != None:
+            cur_eps, cur_delta = self.dp_budget_trace(num_used/self.total_number, self.sigma, account_method=self.account_method)
+        if verbose:
+            print("epsilon: %.2f | delta: %.6f | clipB: %.2f"%(cur_eps, cur_delta, self.clip_bound))
+        self.epsilon_history.append(cur_eps)
+        return grads_sum/num_used, bs_sum/num_used
+
+    def dp_budget_trace(self, q, sigma, account_method):
+        if account_method == "googleTF": # Gaussian Moments Accountant
+            self.log_moment.append((q, sigma, 1))
+            cur_eps, cur_delta = acc_track_eps(self.log_moment, delta=config.delta)
+        elif account_method == "autodp": # Renyi Differential Privacy
+            self.track_eps.update_mech(q, sigma, 1)
+            cur_eps, cur_delta = self.track_eps.get_epsilon(), config.delta
+        return cur_eps, cur_delta
