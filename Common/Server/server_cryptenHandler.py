@@ -30,8 +30,8 @@ class AvgGradientHandler(Handler):
         self.test_iter = test_iter
 
         self.total_number = self.config.total_number_clients
-        self.clip_bound = self.config.initClippingBound
         self.dpoff = self.config._dpoff
+        self.clip_bound =  None if self.dpoff else self.config.initClippingBound
         self.grad_noise_sigma = self.config.grad_noise_sigma
         self.b_noise_std = self.config.b_noise_std
         self.delta = self.config.delta
@@ -82,7 +82,8 @@ class AvgGradientHandler(Handler):
         return self.clip_bound
 
     def update_clipBound(self, bs_avg, verbose=False):
-        self.clip_bound = (self.clip_bound * np.exp(-self.config.blr*(min(bs_avg,1)-self.config.gamma))).item()
+        if not self.dpoff:
+             self.clip_bound = (self.clip_bound * np.exp(-self.config.blr*(min(bs_avg,1)-self.config.gamma))).item()
         if verbose:
             print("next round clipping boundary: %.2f"%self.clip_bound)
 
