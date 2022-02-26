@@ -30,8 +30,8 @@ class AvgGradientHandler(Handler):
         self.test_iter = test_iter
 
         self.total_number = self.config.total_number_clients
-        self.clip_bound = self.config.initClippingBound
         self.dpoff = self.config._dpoff
+        self.clip_bound = None if self.dpoff else self.config.initClippingBound
         self.grad_noise_sigma = self.config.grad_noise_sigma
         self.b_noise_std = self.config.b_noise_std
         self.delta = self.config.delta
@@ -91,7 +91,7 @@ class AvgGradientHandler(Handler):
         b_sum = 0
         for _id in benign_id:
             print(".", end="")
-            if s2pc.secrete_reconstruct(norm_in[_id]<=self.clip_bound):
+            if self.clip_bound == None or s2pc.secrete_reconstruct(norm_in[_id]<=self.clip_bound):
                 grads_sum += grad_in[_id] * norm_in[_id]
                 b_sum += 1
             else:
@@ -136,24 +136,21 @@ class AvgGradientHandler(Handler):
         return self.clip_bound
 
     def update_clipBound(self, bs_avg, verbose=False):
-        self.clip_bound = (self.clip_bound * np.exp(-self.config.blr*(min(bs_avg,1)-self.config.gamma))).item()
+        if not self.dpoff:
+             self.clip_bound = (self.clip_bound * np.exp(-self.config.blr*(min(bs_avg,1)-self.config.gamma))).item()
         if verbose:
             print("next round clipping boundary: %.2f"%self.clip_bound)
 
     def add_dpNoise(self, grads_sum, bs_sum, num_used, verbose=True):
         if not self.dpoff:
             grads_sum += torch.normal(mean=0, std=self.grad_noise_sigma*self.clip_bound, size=grads_sum.shape)
-            bs_sum += np.random.normal(0, self.b_noise_std)
-            if self.sigma != None:
-                cur_eps, cur_delta = self.dp_budget_trace(
-                    q=num_used/self.total_number, 
-                    sigma=self.sigma, 
-                    account_method=self.account_method)
-                if verbose:
-                    print("epsilon: %.2f | delta: %.6f | clipB: %.2f"%(cur_eps, cur_delta, self.clip_bound))
-                self.epsilon_history.append(cur_eps)
-        self.update_clipBound(bs_sum/num_used)
-        return grads_sum/num_used
+            # bs_sum += np.random.normal(0, self.b_noise_std)
+        if self.sigma != None:
+            cur_eps, cur_delta = self.dp_budget_trace(num_used/self.total_number, self.sigma, account_method=self.account_method)
+        if verbose:
+            print("epsilon: %.2f | delta: %.6f | clipB: %.2f"%(cur_eps, cur_delta, self.clip_bound))
+        self.epsilon_history.append(cur_eps)
+        return grads_sum/num_used, bs_sum/num_used
 
     def dp_budget_trace(self, q, sigma, account_method):
         if account_method == "googleTF": # Gaussian Moments Accountant

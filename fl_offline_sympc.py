@@ -132,7 +132,11 @@ if __name__ == "__main__":
         aggregator.update_clipBound(bAvg_plain)
         test_accuracy = aggregator.globalmodel_update(gradsAvg_plain.cpu().numpy().tolist())
         if test_accuracy != None: 
-            print("global accuracy:%.3f | next clipping boundary:%.2f"%(test_accuracy,aggregator.get_clipBound()))
+            print("global accuracy:%.3f | "%test_accuracy, end="")
+            if aggregator.get_clipBound() != None:
+                print("next clipping boundary:%.2f"%aggregator.get_clipBound())
+            else:
+                print("next clipping boundary:inf")
         print()
     
     if config.dp_test:
