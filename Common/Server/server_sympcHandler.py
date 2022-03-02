@@ -116,7 +116,7 @@ class AvgGradientHandler(Handler):
         cluster.fit(inputs)
         label = cluster.labels_
         if (label==-1).all():
-            bengin_id = np.arange(self.clients_per_round).tolist()
+            bengin_id = np.arange(len(inputs)).tolist()
         else:
             label_class, label_count = np.unique(label, return_counts=True)
             if -1 in label_class:
