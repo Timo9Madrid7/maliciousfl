@@ -1,8 +1,8 @@
 import torch
+import numpy
 
 class DBSCAN:
-    def __init__(self, data: torch.Tensor, radius: float, minPoints: int, metric="euclidean"):
-        self.data = data
+    def __init__(self, radius: float, minPoints: int, metric="euclidean"):
         self.radius = radius 
         self.minPoints = minPoints
         if metric == "euclidean":
@@ -10,13 +10,14 @@ class DBSCAN:
         else:
             AttributeError("metric not found")
         
-        self.numPoints = len(self.data)
+        self.data = None
+        self.numPoints = 0
         self._noise = -1
         self._unassigned = -1
         self._core = -2
         self._border = -3
         
-        self.labels_, self.core_sample_indices_, self.sample_groups_ = self._fit()
+        self.labels_, self.core_sample_indices_ = None, None
         
     def _neighbor_points(self):
         distance_matrix = torch.cdist(self.data, self.data, p=self.p)
@@ -25,7 +26,9 @@ class DBSCAN:
             pointGroup.append(torch.where(distance_matrix[i]<=self.radius)[0].numpy().tolist())
         return pointGroup
     
-    def _fit(self):
+    def fit(self, data:torch.Tensor):
+        self.data = data
+        self.numPoints = len(self.data)
         pointLabel = [self._unassigned] * self.numPoints
         pointGroup = self._neighbor_points()
         corePoint = []
@@ -63,23 +66,25 @@ class DBSCAN:
             
                 curClusterID += 1
             
-        return torch.tensor(pointLabel, dtype=torch.int), torch.tensor(corePoint, dtype=torch.int), pointGroup
+        self.labels_ = numpy.array(pointLabel, dtype=int)
+        self.core_sample_indices_ = numpy.array(coreGroup, dtype=int)
+        return self
 
 
 class EncDBSCAN:
-    def __init__(self, data, radius, minPoints, s2pc=None):
-        self.data = data
+    def __init__(self, radius:float, minPoints:int, s2pc=None):
         self.radius = radius 
         self.minPoints = minPoints
         self.s2pc = s2pc
         
-        self.numPoints = len(self.data)
+        self.data = None
+        self.numPoints = 0
         self._noise = -1
         self._unassigned = -1
         self._core = -2
         self._border = -3
         
-        self.labels_, self.core_sample_indices_, self.sample_groups = self._fit()
+        self.labels_, self.core_sample_indices_ = None, None
         
     def _l2_distance(self, a, b):
         return (a-b).square().sum()
@@ -92,7 +97,9 @@ class EncDBSCAN:
                 neighbors.append(i)
         return neighbors
     
-    def _fit(self):
+    def fit(self, data:torch.Tensor):
+        self.data = data 
+        self.numPoints = len(self.data)
         pointLabel = [self._unassigned] * self.numPoints
         pointGroup = []
         corePoint = []
@@ -133,7 +140,9 @@ class EncDBSCAN:
             
                 curClusterID += 1
             
-        return torch.tensor(pointLabel), torch.tensor(corePoint), pointGroup
+        self.labels_ = numpy.array(pointLabel, dtype=int)
+        self.core_sample_indices_ = numpy.array(coreGroup, dtype=int)
+        return self
 
 def plot_2Dresult(X, labels, core_sample_indices):
     import matplotlib.pyplot as plt
