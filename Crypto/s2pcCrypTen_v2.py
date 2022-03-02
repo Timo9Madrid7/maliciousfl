@@ -74,7 +74,6 @@ class S2PC():
         def cosineFilter(grads_list_, grads_ly_list_, precision, verbose):
             grad_share = crypten.cryptensor(grads_list_, precision=precision)
             grad_share_mean = grad_share.mean(axis=0)
-            distance_matrix = 1. - ((grad_share-grad_share_mean).dot(grad_share-grad_share_mean))
             distance_matrix = crypten.cryptensor([[0 for _ in range(len(grads_list_))] for _ in range(len(grads_list_))])
             for i in range(len(grads_list_)):
                 for j in range(i+1, len(grads_list_)):
@@ -88,7 +87,6 @@ class S2PC():
             
             grad_share = crypten.cryptensor(grads_ly_filtered, precision=precision)
             grad_share_mean = grad_share.mean(axis=0)
-            distance_matrix = 1. - ((grad_share-grad_share_mean).dot(grad_share-grad_share_mean))
             distance_matrix = crypten.cryptensor([[0 for _ in range(len(grads_ly_filtered))] for _ in range(len(grads_ly_filtered))])
             for i in range(len(grads_ly_filtered)):
                 for j in range(i+1, len(grads_ly_filtered)):
