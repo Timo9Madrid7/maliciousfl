@@ -53,17 +53,17 @@ class S2PC():
 
     def notLargerThan_s2pc(self, a:mpc.mpc.MPCTensor, b:mpc.mpc.MPCTensor):
         @mpc.run_multiprocess(world_size=2)
-        def isSmallerThan(a, b):
+        def notLargerThan(a, b):
             if (a<=b).get_plain_text():
                 return True 
             return False
-        return isSmallerThan(a, b)[0]
+        return notLargerThan(a, b)[0]
 
     def comparisonReconstruct_s2pc(self, a:mpc.mpc.MPCTensor):
         @mpc.run_multiprocess(world_size=2)
-        def reconstruct(a):
+        def comparisonReconstruct(a):
             return a.get_plain_text().numpy().astype(bool)
-        return reconstruct[0]
+        return comparisonReconstruct(a)[0]
     
     def cosinedist_correctness_check(self, grads_secrete:list):
         grads_secrete = np.array(grads_secrete)
