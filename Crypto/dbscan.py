@@ -1,5 +1,6 @@
 import torch
 import numpy
+from tqdm import tqdm
 
 class DBSCAN:
     def __init__(self, radius: float, minPoints: int, metric="euclidean"):
@@ -140,12 +141,8 @@ class EncDBSCAN:
 
     # def _l2_distance(self, a, b):
     #     return (a-b).square().sum()
-    def _l2_distance(self, a:list, b:list):
-        assert len(a) == len(b)
-        sum_square = 0
-        for i in range(len(a)):
-            sum_square += (a[i] - b[i]).square()
-        return sum_square
+    def _l2_distance(self, a, b):
+        return (a-b).square().sum()
     
     def _neighbor_points(self, pointID):
         neighbors = []
@@ -163,7 +160,7 @@ class EncDBSCAN:
         corePoint = []
         nonCorePoint = []
         
-        for i in range(self.numPoints):
+        for i in tqdm(range(self.numPoints)):
             pointGroup.append(self._neighbor_points(i))
             
         for i in range(len(pointGroup)):
