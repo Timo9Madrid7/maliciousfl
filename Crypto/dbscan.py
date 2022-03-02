@@ -21,7 +21,7 @@ class DBSCAN:
         self.labels_, self.core_sample_indices_ = None, None
         
     def _neighbor_points(self):
-        distance_matrix = torch.cdist(self.data, self.data, p=self.p)
+        distance_matrix = torch.cdist(self.data, self.data, p=self.p).square() #? square() here for debugging
         pointGroup = []
         for i in range(len(distance_matrix)):
             pointGroup.append(torch.where(distance_matrix[i]<=self.radius)[0].numpy().tolist())
@@ -146,7 +146,7 @@ class EncDBSCAN:
     
     def _neighbor_points(self, pointID):
         neighbors = []
-        for i in range(self.numPoints):
+        for i in range(self.numPoints): #TODO: O(n^2) to O(nlogn)
             # if self._l2_distance(self.data[pointID], self.data[i]) <= self.radius:
             if self.s2pc.notLargerThan_s2pc(self._l2_distance(self.data[pointID], self.data[i]), self.radius):
                 neighbors.append(i)
