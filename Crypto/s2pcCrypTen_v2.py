@@ -2,13 +2,16 @@ from Crypto.dbscan import EncDBSCAN, DBSCAN
 import crypten
 import crypten.mpc as mpc
 import crypten.communicator as comm
+from crypten.config import cfg
 import torch
 import numpy as np
 
 
 class S2PC():
 
-    def __init__(self, eps1=2., minNumPts1=3, eps2=3., minNumPts2=5):
+    def __init__(self, eps1=2., minNumPts1=3, eps2=3., minNumPts2=5, precision=24):
+        self.precision = precision
+        cfg.encoder.precision_bits = self.precision
         crypten.init()
         torch.set_num_threads(1)
 
@@ -16,8 +19,8 @@ class S2PC():
         self.cluster_lastLayer = EncDBSCAN(eps2, minNumPts2, self)
 
     @mpc.run_multiprocess(world_size=2)
-    def cosinedist_s2pc(self, grads_secrete:list, precision=24, correctness_check=False):
-        grad_share = crypten.cryptensor(grads_secrete, precision=precision)
+    def cosinedist_s2pc(self, grads_secrete:list, correctness_check=False):
+        grad_share = crypten.cryptensor(grads_secrete)
         grad_share_mean = grad_share.mean(axis=0)
         distance_matrix = [[0 for _ in range(len(grads_secrete))] for _ in range(len(grads_secrete))]
         for i in range(len(grads_secrete)):
@@ -35,11 +38,11 @@ class S2PC():
         
         return distance_matrix
 
-    def aggregation_s2pc(self, grads_secrete:list, norms_secrete:list, clip_bound:float or None, benign_id:list, precision=24):
+    def aggregation_s2pc(self, grads_secrete:list, norms_secrete:list, clip_bound:float or None, benign_id:list):
         @mpc.run_multiprocess(world_size=2)
-        def aggregation(grads_secrete:list, norms_secrete:list, clip_bound:float or None, benign_id:list, precision:int):
-            grads_share = crypten.cryptensor(grads_secrete, precision=precision)
-            norms_share = crypten.cryptensor(norms_secrete, precision=precision)
+        def aggregation(grads_secrete:list, norms_secrete:list, clip_bound:float or None, benign_id:list):
+            grads_share = crypten.cryptensor(grads_secrete)
+            norms_share = crypten.cryptensor(norms_secrete)
             grads_sum = 0
             for _id in benign_id:
                 if clip_bound == None or (norms_share[_id]<=clip_bound).get_plain_text().item():
@@ -52,7 +55,7 @@ class S2PC():
                 return (crypten.cryptensor(norms_secrete)[benign_id] <= clip_bound).sum().get_plain_text().item()
             else:
                 return len(benign_id)
-        bs_sum, _ = aggregation(grads_secrete, norms_secrete, clip_bound, benign_id, precision)
+        bs_sum, _ = aggregation(grads_secrete, norms_secrete, clip_bound, benign_id)
         grads_sum = torch.load('./temp.pt')
         return grads_sum, bs_sum
 
@@ -70,12 +73,12 @@ class S2PC():
             return a.get_plain_text().numpy().astype(bool)
         return comparisonReconstruct(a)[0]
     
-    def cosineFilter_s2pc(self, grads_list_:list, grads_ly_list_:list, precision=24, verbose=True):
+    def cosineFilter_s2pc(self, grads_list_:list, grads_ly_list_:list, verbose=True):
         @mpc.run_multiprocess(world_size=2)
-        def cosineFilter(grads_list_, grads_ly_list_, precision, verbose):
-            grad_share = crypten.cryptensor(grads_list_, precision=precision)
+        def cosineFilter(grads_list_, grads_ly_list_, verbose):
+            grad_share = crypten.cryptensor(grads_list_)
             grad_share_mean = grad_share.mean(axis=0)
-            # distance_matrix = crypten.cryptensor([[0. for _ in range(len(grads_list_))] for _ in range(len(grads_list_))], precision=precision)
+            # distance_matrix = crypten.cryptensor([[0. for _ in range(len(grads_list_))] for _ in range(len(grads_list_))])
             # for i in range(len(grads_list_)):
             #     for j in range(i+1, len(grads_list_)):
             #         distance_matrix[i][j] = distance_matrix[j][i] = 1. - ((grad_share[i]-grad_share_mean).dot(grad_share[j]-grad_share_mean))
@@ -88,9 +91,9 @@ class S2PC():
             for _id in filter1_id:
                 grads_ly_filtered.append(grads_ly_list_[_id])
             
-            grad_share = crypten.cryptensor(grads_ly_filtered, precision=precision)
+            grad_share = crypten.cryptensor(grads_ly_filtered)
             grad_share_mean = grad_share.mean(axis=0)
-            # distance_matrix = crypten.cryptensor([[0. for _ in range(len(grads_ly_filtered))] for _ in range(len(grads_ly_filtered))], precision=precision)
+            # distance_matrix = crypten.cryptensor([[0. for _ in range(len(grads_ly_filtered))] for _ in range(len(grads_ly_filtered))])
             # for i in range(len(grads_ly_filtered)):
             #     for j in range(i+1, len(grads_ly_filtered)):
             #         distance_matrix[i][j] = distance_matrix[j][i] = 1. - ((grad_share[i]-grad_share_mean).dot(grad_share[j]-grad_share_mean))
@@ -108,7 +111,7 @@ class S2PC():
                 print("filter 2 id:", benign_id)
             return benign_id
 
-        return cosineFilter(grads_list_, grads_ly_list_, precision, verbose)[0]
+        return cosineFilter(grads_list_, grads_ly_list_, verbose)[0]
 
     def get_ids(self, label):
         if (label==-1).all():
