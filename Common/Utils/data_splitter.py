@@ -67,6 +67,33 @@ class DataSplitter():
             random.shuffle(client_train)
             torch.save(client_train, self.path+save_path+"client_"+str(client)+".pt")
     
+    def split_unique_train_data(self, n:int, q=0.1, save_path='/'):
+        """split the training data according to the given degree of non-iid 
+        such that each sample will be merely assigned to an unique client
+
+        Args:
+            n (int): total number of clients, multiple of 10.
+            q (float, optional): degree of non-IID.
+            save_path (str, optional): './Data/[self.path]/' by default.
+        """
+        assert n%self.num_class == 0
+
+        train_samples = [[] for _ in range(self.num_class)]
+        for train_sample in self.data_train:
+            train_samples[train_sample[1]].append(train_sample)
+        
+        for client in range(n):      
+            samples_per_class = self.random_samples(int(len(self.data_train)/n), client%self.num_class, q, (1-q)/(self.num_class-1))
+            client_train = []
+            for i in range(self.num_class):
+                if samples_per_class[i] <= len(train_samples[i]):
+                    for _ in range(samples_per_class[i]):
+                        client_train.append(train_samples[i].pop(random.randint(0,len(train_samples[i])-1)))
+                else:
+                    client_train += train_samples[i]
+            random.shuffle(client_train)
+            torch.save(client_train, self.path+save_path+"client_"+str(client)+".pt")
+
     def split_eval_data(self, n:int, m:int, q=0.1, save_path='/'):
         """
         n: total number of clients, multiple of 10;
