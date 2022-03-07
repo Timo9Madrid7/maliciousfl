@@ -16,6 +16,8 @@ Open cmd and run commands:
 python model_prepare.py && python fl_offline_crypten.py
 ```
 
+v2 can run on Google CoLab: [link here](https://colab.research.google.com/drive/1DBlVAJr6CWOmcrbLS5i7-lnJJafsD0-f?usp=sharing)
+
 ### SyMPC + PySyft
 If choosing `SyMPC`, `torch` version should lower than `1.8.1`.
 
