@@ -45,7 +45,7 @@ if __name__ == "__main__":
         
         # Clients
         client_id_counter = 0
-        client_ids_ = random.sample(range(120), config.num_workers)
+        client_ids_ = random.sample(range(config.total_number_clients), config.num_workers)
         b_list_ = []
         grads_list_ = []
         for client_id in client_ids_:
