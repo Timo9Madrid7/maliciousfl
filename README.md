@@ -3,8 +3,9 @@
 ## Start
 
 ### CrypTen (Linux Only)
-~~If choosing `CrypTen`, make sure to comment `crypten/init.py` from `line 194` to `202` before running `python fl_offline_crypten.py`, since it currently doesn't support GPU random generator.~~
-If choosing `CrypTen`, make sure to pass argument `device=cpu` when initializing `crypten.init()`, since it currently doesn't support GPU random generator on **Google CoLab**.
+If choosing `CrypTen`, make sure to comment `crypten/init.py` from `line 194` to `202` before running `python fl_offline_crypten.py`, since it currently doesn't support GPU random generator on **Google CoLab**.
+
+~~If choosing `CrypTen`, make sure to pass argument `device=cpu` when initializing `crypten.init()`, since it currently doesn't support GPU random generator on **Google CoLab**.~~
 
 In addition (not necessary), 
 - ~~comment `line 75` in `crypten/encoder.py` and add a new line of code below it: `dividend = tensor.div(self._scale, rounding_mode='trunc') - correction` so as to avoid `UserWarning: __floordiv__ is deprecated`~~
