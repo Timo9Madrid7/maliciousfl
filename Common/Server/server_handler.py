@@ -90,6 +90,7 @@ class AvgGradientHandler(Handler):
 
         # cosine distance filtering
         if self.config.naive_aggregation:
+            filter1_id = []
             bengin_id = list(range(self.clients_per_round))
         else:
             filter1_id = self.cosine_distance_filter(grad_in)
