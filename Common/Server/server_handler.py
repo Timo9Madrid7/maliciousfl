@@ -115,8 +115,8 @@ class AvgGradientHandler(Handler):
             grad_in = grad_in[bengin_id].mean(axis=0)
             S = 0
             print("clip_bound: inf")
-            print("filter 1 id:", filter1_id)
-            print("filter 2 id:", bengin_id)
+            print("filter 1 id %d:"%len(filter1_id), filter1_id)
+            print("filter 2 id %d:"%len(bengin_id), bengin_id)
         else:
             # noise compensation
             if self.dpcompen:
@@ -139,8 +139,8 @@ class AvgGradientHandler(Handler):
                     account_method=self.account_method)
                 print("epsilon: %.2f | delta: %.6f | "%(cur_eps, cur_delta), end="")
             print("clip_bound: %.3f "%S)
-            print("filter 1 id:", filter1_id)
-            print("filter 2 id:", bengin_id)
+            print("filter 1 id %d:"%len(filter1_id), filter1_id)
+            print("filter 2 id %d:"%len(bengin_id), bengin_id)
             self.epsilon_history.append(cur_eps)
             
             # gradients average
