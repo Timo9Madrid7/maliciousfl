@@ -38,9 +38,9 @@ class S2PC():
         
         return distance_matrix
 
-    def aggregation_s2pc(self, grads_secrete:list, norms_secrete:list, clip_bound:float or None, benign_id:list):
+    def aggregation_s2pc(self, grads_secrete:list, norms_secrete:list, clip_bound:float or None, benign_id:list, precision=20):
         @mpc.run_multiprocess(world_size=2)
-        def aggregation(grads_secrete:list, norms_secrete:list, clip_bound:float or None, benign_id:list):
+        def aggregation(grads_secrete:list, norms_secrete:list, clip_bound:float or None, benign_id:list, precision:int):
             grads_share = crypten.cryptensor(grads_secrete)
             norms_share = crypten.cryptensor(norms_secrete)
             grads_sum = 0
@@ -55,8 +55,10 @@ class S2PC():
                 return (crypten.cryptensor(norms_secrete)[benign_id] <= clip_bound).sum().get_plain_text().item()
             else:
                 return len(benign_id)
-        bs_sum, _ = aggregation(grads_secrete, norms_secrete, clip_bound, benign_id)
+        cfg.encoder.precision_bits = precision
+        bs_sum, _ = aggregation(grads_secrete, norms_secrete, clip_bound, benign_id, precision)
         grads_sum = torch.load('./temp.pt')
+        cfg.encoder.precision_bits = self.precision
         return grads_sum, bs_sum
 
     def notLargerThan_s2pc(self, a:mpc.mpc.MPCTensor, b:mpc.mpc.MPCTensor):
