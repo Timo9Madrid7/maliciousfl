@@ -107,8 +107,8 @@ class S2PC():
                 benign_id.append(filter1_id[_id])
             
             if verbose and comm.get().get_rank():
-                print("filter 1 id:", filter1_id)
-                print("filter 2 id:", benign_id)
+                print("filter 1 id: (%d)"%len(filter1_id), filter1_id)
+                print("filter 2 id: (%d)"%len(benign_id), benign_id)
             return benign_id
 
         return cosineFilter(grads_list_, grads_ly_list_, verbose)[0]
