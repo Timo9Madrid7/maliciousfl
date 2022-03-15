@@ -119,8 +119,8 @@ class AvgGradientHandler(Handler):
             # bs_sum += np.random.normal(0, self.b_noise_std)
         if self.sigma != None:
             cur_eps, cur_delta = self.dp_budget_trace(num_used/self.total_number, self.sigma, account_method=self.account_method)
-        if verbose:
-            print("epsilon: %.2f | delta: %.6f | clipB: %.2f"%(cur_eps, cur_delta, self.clip_bound))
+            if verbose:
+                print("epsilon: %.2f | delta: %.6f | clipB: %.2f"%(cur_eps, cur_delta, self.clip_bound))
         self.epsilon_history.append(cur_eps)
         return grads_sum/num_used, bs_sum/num_used
 

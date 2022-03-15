@@ -110,7 +110,8 @@ if __name__ == "__main__":
         # benign_id = s2pc.filters_parameters_tuning(grads_list_, grads_ly_list_) #? for parameters tuning
         benign_id = s2pc.cosineFilter_s2pc(grads_list_, grads_ly_list_)
         grads_sum, bs_sum = s2pc.aggregation_s2pc(grads_list_, norms_list_, aggregator.get_clipBound(), benign_id)
-        grads_avg, bs_avg = grads_sum/len(benign_id), bs_sum/len(benign_id) #TODO: noise adding
+        # grads_avg, bs_avg = grads_sum/len(benign_id), bs_sum/len(benign_id) 
+        grads_avg, bs_avg = aggregator.add_dpNoise(grads_sum, bs_sum, len(benign_id), verbose=True)
         aggregator.update_clipBound(bs_avg)
         test_accuracy = aggregator.globalmodel_update(grads_avg.tolist())
         if test_accuracy != None: 
