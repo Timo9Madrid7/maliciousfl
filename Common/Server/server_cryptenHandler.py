@@ -122,6 +122,10 @@ class AvgGradientHandler(Handler):
                 if verbose:
                     print("epsilon: %.2f | delta: %.6f | clipB: %.2f"%(cur_eps, cur_delta, self.clip_bound))
                 self.epsilon_history.append(cur_eps)
+                grads_avg = grads_sum/num_used
+            if torch.norm(grads_avg) > self.clip_bound: # post-processing
+                grads_avg *= self.clip_bound/torch.norm(grads_avg)
+            return grads_avg, bs_sum/num_used
         return grads_sum/num_used, bs_sum/num_used
 
     def dp_budget_trace(self, q, sigma, account_method):
