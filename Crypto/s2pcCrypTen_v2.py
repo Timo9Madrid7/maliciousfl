@@ -9,7 +9,7 @@ import numpy as np
 
 class S2PC():
 
-    def __init__(self, eps1=2., minNumPts1=3, eps2=3., minNumPts2=5, precision=24):
+    def __init__(self, eps1=2.5, minNumPts1=3, eps2=3., minNumPts2=5, precision=24):
         self.precision = precision
         cfg.encoder.precision_bits = self.precision
         crypten.init()

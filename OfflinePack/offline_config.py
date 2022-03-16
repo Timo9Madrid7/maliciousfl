@@ -26,7 +26,7 @@ global_lambda = 0
 # adaptive clipping parameters
 initClippingBound = 10 # initial clipping bound
 beta = 0.1 # last round gradient weight
-blr = 0.5 # clipping bound learning rate
+blr = 0.3 # clipping bound learning rate
 gamma = 0.5 # non-clipping ratio {0.1, 0.3, 0.5, 0.7, 0.9}
 b_noise_std = 5
 grad_noise_sigma = 1.005
