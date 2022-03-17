@@ -1,11 +1,4 @@
-# -*- coding: utf-8 -*-
-
-import time
 import torch
-import torchvision
-from torch import nn, optim
-
-
 
 def evaluate_accuracy(data_iter, net, device=None):
     if device is None and isinstance(net, torch.nn.Module):
