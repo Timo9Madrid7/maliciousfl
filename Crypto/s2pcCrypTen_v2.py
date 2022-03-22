@@ -18,6 +18,9 @@ class S2PC():
         self.cluster_base = EncDBSCAN(eps1, minNumPts1, self)
         self.cluster_lastLayer = EncDBSCAN(eps2, minNumPts2, self)
 
+    def get_plain_text(self, x):
+        return x.get_plain_text()
+
     @mpc.run_multiprocess(world_size=2)
     def cosinedist_s2pc(self, grads_secrete:list, correctness_check=False):
         grad_share = crypten.cryptensor(grads_secrete)
