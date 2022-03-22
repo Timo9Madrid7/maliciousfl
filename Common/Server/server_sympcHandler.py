@@ -146,11 +146,15 @@ class AvgGradientHandler(Handler):
         if not self.dpoff:
             grads_sum += torch.normal(mean=0, std=self.grad_noise_sigma*self.clip_bound, size=grads_sum.shape)
             # bs_sum += np.random.normal(0, self.b_noise_std)
-        if self.sigma != None:
-            cur_eps, cur_delta = self.dp_budget_trace(num_used/self.total_number, self.sigma, account_method=self.account_method)
-        if verbose:
-            print("epsilon: %.2f | delta: %.6f | clipB: %.2f"%(cur_eps, cur_delta, self.clip_bound))
-        self.epsilon_history.append(cur_eps)
+            if self.sigma != None:
+                cur_eps, cur_delta = self.dp_budget_trace(num_used/self.total_number, self.sigma, account_method=self.account_method)
+                if verbose:
+                    print("epsilon: %.2f | delta: %.6f | clipB: %.2f"%(cur_eps, cur_delta, self.clip_bound))
+                self.epsilon_history.append(cur_eps)
+                grads_avg = grads_sum/num_used
+            if torch.norm(grads_avg) > self.clip_bound: # post-processing
+                grads_avg *= self.clip_bound/torch.norm(grads_avg)
+            return grads_avg, bs_sum/num_used
         return grads_sum/num_used, bs_sum/num_used
 
     def dp_budget_trace(self, q, sigma, account_method):
