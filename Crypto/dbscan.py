@@ -89,7 +89,7 @@ class EncDBSCAN:
     def _neighbor_points(self):
         pointGroup = []
         for i in  range(len(self.data)):
-            indices = self.s2pc.get_plain_text(((self.data - self.data[i]).mul(self.data - self.data[i])).sum(axis=1) <= self.radius)
+            indices = self.s2pc.get_plain_text((self.data - self.data[i]).square().sum(axis=1) <= self.radius)
             pointGroup.append(torch.where(indices)[0].tolist())
         return pointGroup
 
