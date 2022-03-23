@@ -34,7 +34,7 @@ if __name__ == "__main__":
     aggregator = AvgGradientHandler(config, global_model, device, test_iter)
 
     # secure two-party computation initialize
-    s2pc = S2PC()
+    s2pc = S2PC(eps1=2., minNumPts1=3, eps2=3., minNumPts2=5, precision=16)
 
     print('model:', config.Model, 
     '| dpoff:', config._dpoff, '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
