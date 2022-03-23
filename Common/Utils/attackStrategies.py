@@ -58,7 +58,7 @@ def krumAttack(grads_list_, grads_avg, threshold=1e-5, eps=1e-3, verbose=True):
 
 def trimmedMeanAttackPartial(w_local:torch.Tensor, w_global:torch.Tensor):
     """Attacking Trimmed Mean with partial knowledge, reference to Local Model Poisoning Attacks to Byzantine-Robust Federated Learning.
-    The random selection ranges are between [miu +3sigma, miu +4sigma] and [miu -4sigma, miu -3sigma].
+    The random selection ranges are between [mu +3sigma, mu +4sigma] and [mu -4sigma, mu -3sigma].
 
     Args:
         w_local (torch.Tensor): colluded clients' uploads.
