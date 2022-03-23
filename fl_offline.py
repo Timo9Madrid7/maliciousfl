@@ -5,6 +5,7 @@ from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, lo
 from Common.Utils.data_loader import load_data_backdoor_mnist, load_data_backdoor_mnist_test, load_data_flipping_mnist, load_data_flipping_mnist_test
 from Common.Utils.data_loader import load_data_noniid_cifar10, load_data_dittoEval_cifar10
 from Common.Utils.evaluate import evaluate_accuracy
+from Common.Utils.attackStrategies import krumAttack
 from Common.Server.server_handler import AvgGradientHandler
 
 # Offline Packages
@@ -39,6 +40,7 @@ if __name__ == "__main__":
     '\n')
 
     client_dp_counter = 0
+    grads_avg = None
     for epoch in range(config.num_epochs):
         print("epoch %d started, %d out of %d clients selected"
             %(epoch, config.num_workers, config.total_number_clients))
@@ -98,6 +100,10 @@ if __name__ == "__main__":
             b_list_.append(b_dp)
             client_id_counter += 1
         
+        # Other attack strategies:
+        if grads_avg != None and len(config.krum_clients) != 0: # it starts from the second rounds at leaset
+            grads_list_ = krumAttack(grads_list_, grads_avg, verbose=True)
+
         # Server
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Server>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         grads_avg, clippingBound = aggregator.computation(

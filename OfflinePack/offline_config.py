@@ -42,10 +42,13 @@ _dpcompen = False
 delta = 1e-4
 account_method = "autodp"
 
-# inference attack
+# membership inference
 dp_test = False
 dp_in = False
 dp_client = '0'
+# reconstruction inference
+reconstruct_inference = False # replace the last client by default
+target = 3
 
 # byzantine clients
 malicious_clients = [] # malicious random uploading attacks will override other attacks
@@ -57,8 +60,8 @@ backdoor_target = 0
 flipping_clients = [] # flipping attacks will be overrode by other attacks
 flipping_pdr = 0
 
-reconstruct_inference = False # replace the last client by default
-target = 3
+# other byzantine attack
+krum_clients = [] # Krum attack with partial knowledge
 
 # deepsight
 # the number of parameters of an output layer neuron to neurons of the previous layer
