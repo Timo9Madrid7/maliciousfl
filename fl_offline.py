@@ -5,7 +5,7 @@ from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, lo
 from Common.Utils.data_loader import load_data_backdoor_mnist, load_data_backdoor_mnist_test, load_data_flipping_mnist, load_data_flipping_mnist_test
 from Common.Utils.data_loader import load_data_noniid_cifar10, load_data_dittoEval_cifar10
 from Common.Utils.evaluate import evaluate_accuracy
-from Common.Utils.attackStrategies import krumAttack
+from Common.Utils.attackStrategies import krumAttack, trimmedMeanAttack
 from Common.Server.server_handler import AvgGradientHandler
 
 # Offline Packages
@@ -34,10 +34,15 @@ if __name__ == "__main__":
 
     clippingBound = config.initClippingBound
 
-    print('model:', config.Model, '| dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen,
-    '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
-    '| malicious clients:', len(config.malicious_clients), '| backdoor clients:', len(config.backdoor_clients), '| flipping clients:', len(config.flipping_clients),
-    '\n')
+    print(
+        'model:', config.Model, '| dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen,
+        '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
+        '\n',
+        'malicious clients:', len(config.malicious_clients), '| backdoor clients:', len(config.backdoor_clients), '| flipping clients:', len(config.flipping_clients),
+        '\n',
+        'krum clients:', len(config.krum_clients), '| trimmedMean clients:', len(config.trimmedMean_clients),
+        '\n'
+    )
 
     client_dp_counter = 0
     grads_avg = None
@@ -101,8 +106,11 @@ if __name__ == "__main__":
             client_id_counter += 1
         
         # Other attack strategies:
-        if grads_avg != None and len(config.krum_clients) != 0: # it starts from the second rounds at leaset
-            grads_list_ = krumAttack(grads_list_, grads_avg, verbose=True)
+        if grads_avg != None: # they start from the second rounds at leaset
+            if len(config.krum_clients) != 0: # Krum Attack
+                grads_list_ = krumAttack(grads_list_, grads_avg, verbose=True)
+            if len(config.trimmedMean_clients) !=0: # Trimmed Mean Attack
+                grads_list_ = trimmedMeanAttack(grads_list_, grads_avg)
 
         # Server
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Server>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")

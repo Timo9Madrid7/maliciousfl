@@ -62,6 +62,7 @@ flipping_pdr = 0
 
 # other byzantine attack
 krum_clients = [] # Krum attack with partial knowledge
+trimmedMean_clients = [11,12,13,14,15,16,17,18,19] # trimmed-mean attack with partial knowledge
 
 # deepsight
 # the number of parameters of an output layer neuron to neurons of the previous layer
