@@ -57,10 +57,14 @@ backdoor_clients = [] # backdoor attacks will override flipping attacks
 backdoor_pdr = 0
 backdoor_target = 0
 
-flipping_clients = [] # flipping attacks will be overrode by other attacks
+flipping_clients = [] # flipping attacks will override edge-case attack
 flipping_pdr = 0
 
-# other byzantine attack
+edge_case_clinets = [] # edge-case attack will be overrode by other attacks
+edge_case_test = False 
+edge_case_num = 60
+
+# other byzantine attack (collude)
 krum_clients = [] # Krum attack with partial knowledge
 trimmedMean_clients = [] # trimmed-mean attack with partial knowledge
 

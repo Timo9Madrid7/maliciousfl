@@ -2,7 +2,7 @@
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import ResNet, BasicBlock
 from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, load_data_dittoEval_mnist, load_all_test_mnist, load_data_dpclient_mnist
-from Common.Utils.data_loader import load_data_backdoor_mnist, load_data_backdoor_mnist_test, load_data_flipping_mnist, load_data_flipping_mnist_test
+from Common.Utils.data_loader import load_data_backdoor_mnist, load_data_backdoor_mnist_test, load_data_flipping_mnist, load_data_flipping_mnist_test, load_data_edge_case_mnist, load_data_edge_case_mnist_test
 from Common.Utils.data_loader import load_data_noniid_cifar10, load_data_dittoEval_cifar10
 from Common.Utils.evaluate import evaluate_accuracy
 from Common.Utils.attackStrategies import krumAttack, trimmedMeanAttack
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         '\n',
         'malicious clients:', len(config.malicious_clients), '| backdoor clients:', len(config.backdoor_clients), '| flipping clients:', len(config.flipping_clients),
         '\n',
-        'krum clients:', len(config.krum_clients), '| trimmedMean clients:', len(config.trimmedMean_clients),
+        'krum clients:', len(config.krum_clients), '| trimmedMean clients:', len(config.trimmedMean_clients), '| edge-case clients:', len(config.edge_case_clinets),
         '\n'
     )
 
@@ -64,6 +64,8 @@ if __name__ == "__main__":
                 train_iter = load_data_backdoor_mnist(client_id, noniid=config._noniid)
             elif client_id_counter in config.flipping_clients:
                 train_iter = load_data_flipping_mnist(client_id, noniid=config._noniid)
+            elif client_id_counter in config.edge_case_clinets:
+                train_iter = load_data_edge_case_mnist(client_id, config.edge_case_num, noniid=config._noniid)
             else:
                 train_iter = load_data_noniid_mnist(client_id, noniid=config._noniid)
             eval_iter = load_data_dittoEval_mnist(client_id, noniid=config._noniid)
@@ -127,6 +129,9 @@ if __name__ == "__main__":
     if config.flipping_clients != []:
         flipping_test_iter = load_data_flipping_mnist_test()
         print("flipping accuracy: %.3f"%evaluate_accuracy(flipping_test_iter, global_model, device))
+    if config.edge_case_clinets != [] or config.edge_case_test:
+        edge_case_test_iter_true_fake, edge_case_test_iter_true = load_data_edge_case_mnist_test()
+        print("edge cases BA(7->1): %.3f | MA(7->7): %.3f"%(evaluate_accuracy(edge_case_test_iter_true_fake, global_model, device), evaluate_accuracy(edge_case_test_iter_true, global_model, device)))
 
     torch.save(global_model.state_dict(), config.global_models_path)
     

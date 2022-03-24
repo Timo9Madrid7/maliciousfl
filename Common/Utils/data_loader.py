@@ -2,7 +2,7 @@ from Common.Utils.backdoorInjection import backdoor_mnist, backdoor_mnist_test, 
 
 import torch
 import torchvision
-
+import random
 
 def load_data_mnist(id, batch=None, path=None):
     data = torch.load(path+'/'+'mnist_train_'+str(id%10)+'_.pt')
@@ -107,6 +107,21 @@ def load_data_flipping_mnist_test(batch=128, path="./Data/MNIST/"):
         ]))
     test = list(map(flipping_mnist_test, test))
     return torch.utils.data.DataLoader(test, batch_size=batch, shuffle=True, num_workers=0)
+
+def load_data_edge_case_mnist(client_index, num_edge_case=60, batch=128, noniid=True):
+    if noniid:
+        path="./Data/MNIST/noniid"
+    else:
+        path="./Data/MNIST/iid"
+    data = torch.load(path+'/'+'client_eval_'+client_index+'.pt')
+    edge_case = random.sample(torch.load('./Data/Ardis_IV/edge_case_train_7.pt'), k=num_edge_case)
+    data += edge_case
+    return torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
+
+def load_data_edge_case_mnist_test(batch=128):
+    fake_labels_data = torch.load('./Data/Ardis_IV/edge_case_test_7.pt')
+    true_labels_data = torch.load('./Data/Ardis_IV/edge_case_test_true_7.pt')
+    return torch.utils.data.DataLoader(fake_labels_data, batch_size=batch, shuffle=True, num_workers=0), torch.utils.data.DataLoader(true_labels_data, batch_size=batch, shuffle=True, num_workers=0)
 
 def load_data_usps(id, batch=None, path=None):
     data = torch.load(path+'/'+'usps_train_'+str(id)+'_.pt')
