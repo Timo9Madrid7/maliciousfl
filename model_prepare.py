@@ -30,7 +30,7 @@ elif config.Model == "ResNet":
     if not os.path.exists('./Model/ResNet'):
         os.makedirs('./Model/ResNet')
     torch.save(model.state_dict(), config.global_models_path)
-    if not os.path.exists("./Model/ResNet/Local_models"):
+    if not os.path.exists("./Model/ResNet/Local_Models"):
         os.makedirs("./Model/ResNet/Local_Models")
     for i in range(config.total_number_clients):
         torch.save(model.state_dict(), config.local_models_path+str(i))

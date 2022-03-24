@@ -8,7 +8,7 @@ if Model == "LeNet":
     local_models_path = "./Model/LeNet/Local_Models/LeNet_"
     global_models_path = "./Model/LeNet/LeNet"
 elif Model == "ResNet":
-    local_models_path = "./Model/ResNet/Local_models/ResNet_"
+    local_models_path = "./Model/ResNet/Local_Models/ResNet_"
     global_models_path = "./Model/ResNet/ResNet"
 # global learning rate
 glr = 0.01
