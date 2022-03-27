@@ -191,7 +191,7 @@ def load_data_dittoEval_cifar10(client_index, batch=128, noniid=True):
 
 def load_all_test_cifar10(batch=128, path="./Data/CIFAR10/"):
     transforms = torchvision.transforms
-    trans_aug = transforms.Compose([transforms.RandomCrop(32, padding=4), transforms.RandomHorizontalFlip(), transforms.ToTensor(),transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+    trans_aug = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
     test = torchvision.datasets.CIFAR10(root=path, train=False, download=False, transform=trans_aug)
     test_iter = torch.utils.data.DataLoader(test, batch_size=batch, shuffle=True, num_workers=0)
     return test_iter

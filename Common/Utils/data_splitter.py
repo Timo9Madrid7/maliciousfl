@@ -28,15 +28,20 @@ class DataSplitter():
         return mnist_train, mnist_test
 
     def load_trainTest_cifar10(self):
-        transforms = torchvision.transforms.Compose([
+        transforms_train = torchvision.transforms.Compose([
             torchvision.transforms.RandomCrop(32, padding=4), 
             torchvision.transforms.RandomHorizontalFlip(), 
             torchvision.transforms.ToTensor(),
             torchvision.transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
         ])
 
-        self.cifar10_train = torchvision.datasets.CIFAR10(root=self.path, train=True, download=False, transform=transforms)
-        self.cifar10_test = torchvision.datasets.CIFAR10(root=self.path, train=False, download=False, transform=transforms)
+        transforms_test = torchvision.transforms.Compose([
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+        ])
+
+        self.cifar10_train = torchvision.datasets.CIFAR10(root=self.path, train=True, download=False, transform=transforms_train)
+        self.cifar10_test = torchvision.datasets.CIFAR10(root=self.path, train=False, download=False, transform=transforms_test)
 
         return self.cifar10_train, self.cifar10_test
 
