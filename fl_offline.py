@@ -3,7 +3,7 @@ from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import ResNet, BasicBlock
 from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, load_data_dittoEval_mnist, load_all_test_mnist, load_data_dpclient_mnist
 from Common.Utils.data_loader import load_data_backdoor_mnist, load_data_backdoor_mnist_test, load_data_flipping_mnist, load_data_flipping_mnist_test, load_data_edge_case_mnist, load_data_edge_case_mnist_test
-from Common.Utils.data_loader import load_data_noniid_cifar10, load_data_dittoEval_cifar10
+from Common.Utils.data_loader import load_data_noniid_cifar10, load_data_dittoEval_cifar10, load_all_test_cifar10
 from Common.Utils.evaluate import evaluate_accuracy
 from Common.Utils.attackStrategies import krumAttack, trimmedMeanAttack
 from Common.Server.server_handler import AvgGradientHandler

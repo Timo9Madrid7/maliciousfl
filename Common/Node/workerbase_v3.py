@@ -153,8 +153,8 @@ class WorkerBase(metaclass=ABCMeta):
 
         if verbose:
             print(
-                "client_id: %s | local_acc: %.3f | refer_acc: %.3f (local_test_set) | Ditto: L %.3f, G %.3f | time: %.2f"
-                %(self.client_id, local_test_acc, return_acc, np.mean(lambda_list), self.global_lambda, time.time() - start)
+                "client_id: %s | local_acc: %.3f | prior: %.3f, post: %.3f (local_test_set) | Ditto: L %.3f, G %.3f | time: %.2f"
+                %(self.client_id, local_test_acc, return_acc, evaluate_accuracy(self.eval_iter, self.model), np.mean(lambda_list), self.global_lambda, time.time() - start)
             )
             
         self._weight_cur = self.get_weights(model="global")
