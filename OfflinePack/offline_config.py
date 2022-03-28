@@ -1,13 +1,13 @@
 num_epochs = 21
-total_number_clients = 200
+total_number_clients = 100
 num_workers = 20
 
 # Model Setting
-Model = "LeNet"
-if Model == "LeNet":
+DATASET = "MNIST"
+if DATASET == "MNIST":
     local_models_path = "./Model/LeNet/Local_Models/LeNet_"
     global_models_path = "./Model/LeNet/LeNet"
-elif Model == "ResNet":
+elif DATASET == "CIFAR10":
     local_models_path = "./Model/ResNet/Local_Models/ResNet_"
     global_models_path = "./Model/ResNet/ResNet"
 # global learning rate

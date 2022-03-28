@@ -14,7 +14,7 @@ if config.reconstruct_inference:
         os.makedirs('./Model/LeNet')
     torch.save(G_model.state_dict(), './Model/LeNet/InferModelG')
 
-if config.Model == "LeNet":
+if config.DATASET == "MNIST":
     model = LeNet()
     if not os.path.exists('./Model/LeNet'):
         os.makedirs('./Model/LeNet')
@@ -25,7 +25,7 @@ if config.Model == "LeNet":
         torch.save(model.state_dict(), config.local_models_path+str(i))
     model_summary = summary(model, (1,28,28))
 
-elif config.Model == "ResNet":
+elif config.DATASET == "CIFAR10":
     model = resnet20()
     if not os.path.exists('./Model/ResNet'):
         os.makedirs('./Model/ResNet')

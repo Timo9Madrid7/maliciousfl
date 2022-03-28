@@ -195,4 +195,18 @@ def load_all_test_cifar10(batch=128, path="./Data/CIFAR10/"):
     test = torchvision.datasets.CIFAR10(root=path, train=False, download=False, transform=trans_aug)
     test_iter = torch.utils.data.DataLoader(test, batch_size=batch, shuffle=True, num_workers=0)
     return test_iter
-    
+
+def load_dataset(client_index, dataset="MNIST", test=False, batch=128, noniid=False):
+    if noniid:
+        path = "./Data/" + dataset + "/noniid/client_"
+    else:
+        path = "./Data/" + dataset + "./iid/client_"
+    path += "eval_" if test else ""
+    data = torch.load(path+client_index+'.pt')
+    return torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
+
+def load_testset(dataset="MNIST", batch=128):
+    if dataset == "MNIST":
+        return load_all_test_mnist(batch=batch)
+    elif dataset == "CIFAR10":
+        return load_all_test_cifar10(batch=batch)

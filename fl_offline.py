@@ -1,9 +1,9 @@
 # Utils
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import ResNet, BasicBlock, resnet20
-from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, load_data_dittoEval_mnist, load_all_test_mnist, load_data_dpclient_mnist
+from Common.Utils.data_loader import load_dataset, load_testset
+from Common.Utils.data_loader import load_data_mnist, load_data_dpclient_mnist
 from Common.Utils.data_loader import load_data_backdoor_mnist, load_data_backdoor_mnist_test, load_data_flipping_mnist, load_data_flipping_mnist_test, load_data_edge_case_mnist, load_data_edge_case_mnist_test
-from Common.Utils.data_loader import load_data_noniid_cifar10, load_data_dittoEval_cifar10, load_all_test_cifar10
 from Common.Utils.evaluate import evaluate_accuracy
 from Common.Utils.attackStrategies import krumAttack, trimmedMeanAttack
 from Common.Server.server_handler import AvgGradientHandler
@@ -21,7 +21,11 @@ from copy import deepcopy
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 
-    global_model = LeNet().to(device)
+    if config.DATASET == "MNIST":
+        global_model = LeNet().to(device)
+    elif config.DATASET == "CIFAR10":
+        global_model = resnet20().to(device)
+
     level_length = [0]
     for _, param in global_model.state_dict().items():
         level_length.append(param.data.numel() + level_length[-1])
@@ -29,14 +33,15 @@ if __name__ == "__main__":
     if config.dp_test:
         test_iter = load_data_dpclient_mnist(config.dp_client, noniid=config._noniid)
     else:
-        test_iter = load_all_test_mnist()
+        test_iter = load_testset(dataset=config.DATASET, batch=128)
     aggregator = AvgGradientHandler(config, global_model, device, test_iter)
 
     clippingBound = config.initClippingBound
 
     print(
-        'model:', config.Model, '| dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen,
-        '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
+        'dataset:', config.DATASET, 'total rounds:', config.num_epochs, 'total clients:', config.total_number_clients, 'clients per round', config.num_workers, 
+        '\n',
+        '| dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen, '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
         '\n',
         'malicious clients:', len(config.malicious_clients), '| backdoor clients:', len(config.backdoor_clients), '| flipping clients:', len(config.flipping_clients),
         '\n',
@@ -67,9 +72,12 @@ if __name__ == "__main__":
             elif client_id_counter in config.edge_case_clinets:
                 train_iter = load_data_edge_case_mnist(client_id, config.edge_case_num, noniid=config._noniid)
             else:
-                train_iter = load_data_noniid_mnist(client_id, noniid=config._noniid)
-            eval_iter = load_data_dittoEval_mnist(client_id, noniid=config._noniid)
-            local_model = LeNet().to(device)
+                train_iter = load_dataset(client_id, dataset=config.DATASET, test=False, batch=128, noniid=config._noniid)
+            eval_iter = load_dataset(client_id, dataset=config.DATASET, test=True, batch=128, noniid=config._noniid)
+            if config.DATASET == "MNIST":
+                local_model = LeNet().to(device)
+            elif config.DATASET == "CIFAR10":
+                local_model = resnet20().to(device)
             local_model.load_state_dict(torch.load(config.local_models_path+client_id))
             local_optimizer = torch.optim.Adam(local_model.parameters(), config.llr)
             local_loss_func = torch.nn.CrossEntropyLoss()
