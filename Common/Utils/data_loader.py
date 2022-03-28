@@ -200,7 +200,7 @@ def load_dataset(client_index, dataset="MNIST", test=False, batch=128, noniid=Fa
     if noniid:
         path = "./Data/" + dataset + "/noniid/client_"
     else:
-        path = "./Data/" + dataset + "./iid/client_"
+        path = "./Data/" + dataset + "/iid/client_"
     path += "eval_" if test else ""
     data = torch.load(path+client_index+'.pt')
     return torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
