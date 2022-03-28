@@ -133,6 +133,4 @@ dmypy.json
 *.csv
 Model/
 .vscode/settings.json
-Data/MNIST/*.pt
-Data/CIFAR10/*.pt
-Data/Ardis_IV/*.pt
+*.pt
