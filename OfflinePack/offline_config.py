@@ -13,7 +13,7 @@ elif Model == "ResNet":
 # global learning rate
 glr = 0.01
 # local epochs
-local_epoch = 3
+local_epoch = 1
 # local learning rate
 llr = 0.01 
 # adaptive Ditto parameters

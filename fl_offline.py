@@ -1,6 +1,6 @@
 # Utils
 from Common.Model.LeNet import LeNet
-from Common.Model.ResNet import ResNet, BasicBlock
+from Common.Model.ResNet import ResNet, BasicBlock, resnet20
 from Common.Utils.data_loader import load_data_mnist, load_data_noniid_mnist, load_data_dittoEval_mnist, load_all_test_mnist, load_data_dpclient_mnist
 from Common.Utils.data_loader import load_data_backdoor_mnist, load_data_backdoor_mnist_test, load_data_flipping_mnist, load_data_flipping_mnist_test, load_data_edge_case_mnist, load_data_edge_case_mnist_test
 from Common.Utils.data_loader import load_data_noniid_cifar10, load_data_dittoEval_cifar10, load_all_test_cifar10
@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     global_model = LeNet().to(device)
     level_length = [0]
-    for param in global_model.parameters():
+    for _, param in global_model.state_dict().items():
         level_length.append(param.data.numel() + level_length[-1])
     global_model.load_state_dict(torch.load(config.global_models_path))
     if config.dp_test:
