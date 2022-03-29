@@ -1,5 +1,5 @@
 from Common.Model.LeNet import LeNet
-from Common.Model.ResNet import resnet20
+from Common.Model.ResNet import resnet20 as ResNet
 from Common.Model.Generator import Generator
 from Common.Utils.data_loader import load_data_mnist
 from OfflinePack import offline_config as config
@@ -26,7 +26,7 @@ if config.DATASET == "MNIST":
     model_summary = summary(model, (1,28,28))
 
 elif config.DATASET == "CIFAR10":
-    model = resnet20()
+    model = ResNet()
     if not os.path.exists('./Model/ResNet'):
         os.makedirs('./Model/ResNet')
     torch.save(model.state_dict(), config.global_models_path)
