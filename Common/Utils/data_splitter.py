@@ -49,7 +49,10 @@ class DataSplitter():
         classes = np.array(range(self.num_class))
         p = [p_others] * self.num_class
         p[main_index] = p_main
-        return np.unique(np.random.choice(classes,m,p=p), return_counts=True)[1]
+        samples_per_class = np.zeros(self.num_class, dtype=int)
+        idx, num = np.unique(np.random.choice(classes,m,p=p), return_counts=True)
+        samples_per_class[idx] = num
+        return samples_per_class
 
     def split_train_data(self, n:int, m:int, q=0.1, save_path='/'):
         """
