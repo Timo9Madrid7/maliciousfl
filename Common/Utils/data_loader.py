@@ -76,7 +76,7 @@ def load_data_backdoor_mnist(client_index, batch=128, noniid=True):
         path="./Data/MNIST/noniid"
     else:
         path="./Data/MNIST/iid"
-    data = torch.load(path+'/'+'client_eval_'+client_index+'.pt')
+    data = torch.load(path+'/'+'client_'+client_index+'.pt')
     data = list(map(backdoor_mnist, data))
     return torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
     
@@ -95,7 +95,7 @@ def load_data_flipping_mnist(client_index, batch=128, noniid=True):
         path="./Data/MNIST/noniid"
     else:
         path="./Data/MNIST/iid"
-    data = torch.load(path+'/'+'client_eval_'+client_index+'.pt')
+    data = torch.load(path+'/'+'client_'+client_index+'.pt')
     data = list(map(flipping_mnist, data))
     return torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
 
@@ -113,7 +113,7 @@ def load_data_edge_case_mnist(client_index, num_edge_case=60, batch=128, noniid=
         path="./Data/MNIST/noniid"
     else:
         path="./Data/MNIST/iid"
-    data = torch.load(path+'/'+'client_eval_'+client_index+'.pt')
+    data = torch.load(path+'/'+'client_'+client_index+'.pt')
     edge_case = random.sample(torch.load('./Data/Ardis_IV/edge_case_train_7.pt'), k=num_edge_case)
     data += edge_case
     return torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
