@@ -133,4 +133,7 @@ dmypy.json
 *.csv
 Model/
 .vscode/settings.json
-*.pt
+Data/CIFAR10/iid/*
+Data/CIFAR10/noniid/*
+Data/MNIST/iid/*
+Data/MNIST/noniid/*
