@@ -53,11 +53,9 @@ class OfflineClient(WorkerBaseDitto):
     def upgrade_local(self):
         torch.save(self.local_model.state_dict(), self.config.local_models_path+self.client_id)
     
-    def malicious_random_upload(self, dataset="MNIST"):
-        if dataset == "MNIST":
-            gradients,b = np.random.normal(self.clippingBound, 1, size=(44426,)), 1
-        elif dataset == "CIFAR10":
-            gradients,b = np.random.normal(self.clippingBound, 1, size=(269722,)), 1
+    def malicious_random_upload(self):
+        num_params = sum([params.numel() for params in self.model.state_dict().values()])
+        gradients,b = np.random.normal(self.clippingBound, 1, size=(num_params,)), 1
         if not self.dpoff:
             gradients += np.random.normal(0, self.grad_noise_sigma*self.clippingBound/np.sqrt(self.clients_per_round), size=gradients.shape)
             b += np.random.normal(0, self.b_noise_std/np.sqrt(self.clients_per_round))
