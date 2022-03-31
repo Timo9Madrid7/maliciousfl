@@ -127,6 +127,8 @@ if __name__ == "__main__":
         grads_avg, clippingBound = aggregator.computation(
             grads_list_, b_list_, 
             clippingBound, config.gamma, config.blr)
+        if (epoch+1) % 25 == 0: # save global model every 25 rounds
+            torch.save(global_model.state_dict(), config.global_models_path)
         print()
     
     if config.dp_test:
