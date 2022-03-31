@@ -66,7 +66,7 @@ class AvgGradientHandler(Handler):
         self.accuracy_history = []
         self.epsilon_history = []
 
-    def computation(self, data_in, b_in:list, S, gamma, blr):
+    def computation(self, data_in, b_in:list, S, gamma, blr, test_acc=True):
         """the averaging process of the aggregator
 
         Args:
@@ -82,9 +82,9 @@ class AvgGradientHandler(Handler):
 
         self.counter += 1
         if self.counter == self.config.num_epochs and self.config.recording:
-            np.savetxt("./Eva/accuracy/acc_"+self.config.Model+'_'+self.config.surffix+".txt", self.accuracy_history)
+            np.savetxt("./Eva/accuracy/acc_"+self.config.DATASET+'_'+self.config.surffix+".txt", self.accuracy_history)
             if self.epsilon_history != []:
-                np.savetxt("./Eva/dpbudget/eps_"+self.config.Model+'_'+self.config.surffix+".txt", self.epsilon_history)
+                np.savetxt("./Eva/dpbudget/eps_"+self.config.DATASET+'_'+self.config.surffix+".txt", self.epsilon_history)
 
         grad_in = np.array(data_in).reshape((self.clients_per_round, -1))
 
@@ -155,7 +155,7 @@ class AvgGradientHandler(Handler):
 
         grad_in = grad_in.tolist()
         self.upgrade(grad_in, self.model)
-        if self.test_iter != None:
+        if test_acc and self.test_iter != None:
             test_accuracy = evaluate_accuracy(self.test_iter, self.model)
             print("current global model accuracy: %.3f"%test_accuracy)
             self.accuracy_history.append(test_accuracy)

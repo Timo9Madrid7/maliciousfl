@@ -51,6 +51,7 @@ if __name__ == "__main__":
 
     client_dp_counter = 0
     grads_avg = None
+    MA_history, BA_history = [], []
     for epoch in range(config.num_epochs):
         print("epoch %d started, %d out of %d clients selected"
             %(epoch, config.num_workers, config.total_number_clients))
@@ -126,9 +127,15 @@ if __name__ == "__main__":
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Server>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         grads_avg, clippingBound = aggregator.computation(
             grads_list_, b_list_, 
-            clippingBound, config.gamma, config.blr)
-        if (epoch+1) % 25 == 0: # save global model every 25 rounds
+            clippingBound, config.gamma, config.blr, test_acc=False)
+        test_accuracy = evaluate_accuracy(test_iter, global_model)
+        print("current global model accuracy: %.3f"%test_accuracy)
+        MA_history.append(test_accuracy)
+        if (epoch+1) % 25 == 0: # save global model and MA every 25 rounds
             torch.save(global_model.state_dict(), config.global_models_path)
+            with open("./Eva/offline/MA_history.txt", 'a') as f:
+                f.write(''.join(str(i)+' ' for i in MA_history)+'\n')
+            MA_history = []
         print()
     
     if config.dp_test:
