@@ -8,9 +8,10 @@ To set `Common\Utils\data_splitter.py`:
   - number of samples per client
   - Non-IID degree
   - ...
+
 Use `--help` to get more information from parser helper
 
-and run command:
+and run command for example:
 ```
 python Common\Utils\data_splitter.py --help
 ```
@@ -29,6 +30,6 @@ To modify `OfflinePack\offline_config.py`:
 
 and run commands
 ```python
-python model_prepare.py # print model info
+python model_prepare.py # print model info and initialization (no need to do again if you want to continue running from the last time)
 python fl_offline.py # start training
 ```
