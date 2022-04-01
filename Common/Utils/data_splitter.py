@@ -2,6 +2,7 @@ import torch
 import torchvision
 import random
 import numpy as np
+import argparse
 
 class DataSplitter():
     def __init__(self, path: str, dataset="MNIST") -> None:
@@ -124,19 +125,30 @@ class DataSplitter():
             torch.save(client_eval, self.path+save_path+"client_eval_"+str(client)+".pt")
 
 
-if __name__ == "__main__":
-    
-    path = "./Data/MNIST"
-    dataset = "MNIST"
+def args_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", type=str, default="MNIST", help="select from [MNIST, CIFAR10, ...], default MNIST")
+    parser.add_argument("--n", type=int, default=100, help="total number of clients, default 100")
+    parser.add_argument("--m1", type=int, default=600, help="number of training samples per client, default 600")
+    parser.add_argument("--m2", type=int, default=100, help="number of testing samples per client, default 100")
+    parser.add_argument("--unique", type=bool, default=False, help="client holds unique data? If true, m is useless, default False")
+    parser.add_argument("--q", type=float, default=0.1, help="the non-iid ratio, 0.1 represents iid, default 0.1")
+    parser.add_argument("--path", type=str, default="iid", help="the path to save the datasets, default iid")
+    args = parser.parse_args()
+    return args
+
+if __name__ == "__main__":  
+    args = args_parser()
+
+    dataset = args.dataset
+    path = "./Data/" + dataset
     mysplitter = DataSplitter(path=path, dataset=dataset)
 
-    # IID data splition
-    # mysplitter.split_train_data(n=200, m=600, q=0.1, save_path='/iid/')
-    # mysplitter.split_eval_data(n=200, m=600, q=0.1, save_path='/iid/')
-
-    # non-IID data splition
-    mysplitter.split_train_data(n=200, m=600, q=0.3, save_path='/noniid/')
-    mysplitter.split_eval_data(n=200, m=600, q=0.3, save_path='/noniid/')
+    if args.unique:
+        mysplitter.split_unique_train_data(n=args.n, q=args.q, save_path="./"+args.path+'/')
+    else:
+        mysplitter.split_train_data(n=args.n, m=args.m1, q=args.q, save_path="./"+args.path+'/')
+    mysplitter.split_eval_data(n=args.n, m=args.m2, q=args.q, save_path="./"+args.path+'/')
 
     print("Finished Splition")
 

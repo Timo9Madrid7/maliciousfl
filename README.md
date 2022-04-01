@@ -2,15 +2,17 @@
 
 
 ## Data split
-To modify `Common\Utils\data_splitter.py`:
+To set `Common\Utils\data_splitter.py`:
   - dataset
   - total number of clients
   - number of samples per client
   - Non-IID degree
+  - ...
+Use `--help` to get more information from parser helper
 
 and run command:
 ```
-python Common\Utils\data_splitter.py
+python Common\Utils\data_splitter.py --help
 ```
 
 ## Start FL training
