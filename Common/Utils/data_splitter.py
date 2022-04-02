@@ -145,10 +145,10 @@ if __name__ == "__main__":
     mysplitter = DataSplitter(path=path, dataset=dataset)
 
     if args.unique:
-        mysplitter.split_unique_train_data(n=args.n, q=args.q, save_path="./"+args.path+'/')
+        mysplitter.split_unique_train_data(n=args.n, q=args.q, save_path="/"+args.path+'/')
     else:
-        mysplitter.split_train_data(n=args.n, m=args.m1, q=args.q, save_path="./"+args.path+'/')
-    mysplitter.split_eval_data(n=args.n, m=args.m2, q=args.q, save_path="./"+args.path+'/')
+        mysplitter.split_train_data(n=args.n, m=args.m1, q=args.q, save_path="/"+args.path+'/')
+    mysplitter.split_eval_data(n=args.n, m=args.m2, q=args.q, save_path="/"+args.path+'/')
 
     print("Finished Splition")
 
