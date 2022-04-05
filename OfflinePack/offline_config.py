@@ -8,6 +8,7 @@ if DATASET == "MNIST":
     local_models_path = "./Model/LeNet/Local_Models/LeNet_"
     global_models_path = "./Model/LeNet/LeNet"
 elif DATASET == "CIFAR10":
+    pretrained = True
     local_models_path = "./Model/ResNet/Local_Models/ResNet_"
     global_models_path = "./Model/ResNet/ResNet"
 # global learning rate
@@ -67,7 +68,7 @@ flipping_pdr = 0
 
 edge_case_clinets = [] # edge-case attack will be overrode by other attacks
 edge_case_test = False 
-edge_case_num = 60
+edge_case_num = 300
 
 # other byzantine attack (collude)
 krum_clients = [] # Krum attack with partial knowledge

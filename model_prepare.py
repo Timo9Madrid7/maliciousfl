@@ -27,6 +27,23 @@ if config.DATASET == "MNIST":
 
 elif config.DATASET == "CIFAR10":
     model = ResNet()
+
+    if config.pretrained:
+        print("load model parameters from the pretrained net")
+        # model_parameters = torch.load("./Pretrained_Models/resnet20-12fca82f.th")
+        model_parameters = torch.load("./Pretrained_Models/cifar10_resnet20-4118986f.pt")
+        layer_parameters = []
+        # for key in model_parameters['state_dict'].keys():
+        for key in model_parameters.keys():
+            if "running" in key or "tracked" in key or "downsample" in key: # to abort centralized training records
+                continue
+            # layer_parameters.append(model_parameters['state_dict'][key])
+            layer_parameters.append(model_parameters[key])
+        layer = 0
+        for parameters in model.parameters():
+            parameters.data = layer_parameters[layer]
+            layer += 1
+
     if not os.path.exists('./Model/ResNet'):
         os.makedirs('./Model/ResNet')
     torch.save(model.state_dict(), config.global_models_path)
