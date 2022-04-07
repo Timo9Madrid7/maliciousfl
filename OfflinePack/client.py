@@ -25,4 +25,4 @@ class OfflineClient(WorkerBaseDitto):
     
     def malicious_random_upload(self):
         num_params = sum([params.numel() for params in self.model.state_dict().values()])
-        return np.random.normal(self.clippingBound, 1, size=(num_params,))
+        return np.random.normal(0, 1, size=(num_params,))
