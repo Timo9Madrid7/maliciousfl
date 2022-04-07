@@ -24,7 +24,7 @@ class AvgGradientHandler(Handler):
         self.config = config
         self.model = model 
         self._level_length = [0]
-        for param in self.model.parameters():
+        for _, param in self.model.state_dict().items():
             self._level_length.append(param.data.numel() + self._level_length[-1])
         self.device = device
         self.test_iter = test_iter
@@ -108,7 +108,7 @@ class AvgGradientHandler(Handler):
     
     def upgrade(self, grad_in:list, model):
         layer = 0
-        for param in model.parameters():
+        for _, param in model.state_dict().items():
             layer_diff = grad_in[self._level_length[layer]:self._level_length[layer + 1]]
             param.data += torch.tensor(layer_diff, device=self.device).view(param.data.size())
             layer += 1

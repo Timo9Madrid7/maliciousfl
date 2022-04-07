@@ -23,8 +23,6 @@ class OfflineClient(WorkerBaseDitto):
     def upgrade_local(self):
         torch.save(self.local_model.state_dict(), self.config.local_models_path+self.client_id)
     
-    def malicious_random_upload(self, model="LeNet"):
-        if model == "LeNet":
-            return np.random.normal(0, 1, size=(44426,))
-        elif model == "ResNet":
-            return np.random.normal(0, 1, size=(269722,))
+    def malicious_random_upload(self):
+        num_params = sum([params.numel() for params in self.model.state_dict().values()])
+        return np.random.normal(self.clippingBound, 1, size=(num_params,))

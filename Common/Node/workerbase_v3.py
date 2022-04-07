@@ -33,9 +33,10 @@ class WorkerBase(metaclass=ABCMeta):
         self.model = model
         self.loss_func = loss_func
         self.optimizer = optimizer
-        self._gradients = None          # not really gradients, but weights difference in one epoch
-        self._weight_prev = None        # weights before this epoch
-        self._weight_cur = None         # weights after this epoch
+        self._gradients = None                                  # not really gradients, but weights difference in one epoch
+        self._grad_weight_prev, self._weight_prev = None, None # weights before this epoch
+        self._weight_cur = None                                 # weights after this epoch
+        self._grad_weight_local = None                          # weights of the local model
         self.global_lambda = self.config.global_lambda
 
         # local model parameters:
@@ -60,7 +61,7 @@ class WorkerBase(metaclass=ABCMeta):
         """ setting gradients """
         self._gradients = gradients
 
-    def get_weights(self, model="global"):
+    def get_grad_weights(self, model="global"):
         """ getting weights per layer"""
         if model == "local":
             model_paramters = self.local_model.parameters()
@@ -68,6 +69,17 @@ class WorkerBase(metaclass=ABCMeta):
             model_paramters = self.model.parameters()
         weights = []
         for param in model_paramters:
+            weights.append(param.data)
+        return copy.deepcopy(weights)
+
+    def get_all_weights(self, model="global"):
+        """ getting weights per layer"""
+        if model == "local":
+            model_dict = self.local_model.state_dict()
+        else:
+            model_dict = self.model.state_dict()
+        weights = []
+        for _, param in model_dict.items():
             weights.append(param.data)
         return copy.deepcopy(weights)
 
@@ -106,7 +118,7 @@ class WorkerBase(metaclass=ABCMeta):
         loss.backward()
         layer = 0
         for param in self.model.parameters():
-            param.grad += self.global_lambda * (param - self._weight_local[layer])
+            param.grad += self.global_lambda * (param - self._grad_weight_local[layer])
             layer += 1 
         self.optimizer.step()
 
@@ -125,13 +137,14 @@ class WorkerBase(metaclass=ABCMeta):
         loss_local.backward()
         layer = 0
         for param in self.local_model.parameters():
-            param.grad += self.local_lambda * (param - self._weight_prev[layer])
+            param.grad += self.local_lambda * (param - self._grad_weight_prev[layer])
             layer += 1
         self.local_optimizer.step()
 
     def fl_train(self, local_epoch=1, verbose=False):
         # retrieve weights from the global model
-        self._weight_prev = self.get_weights(model="global")
+        self._grad_weight_prev = self.get_grad_weights(model="global")
+        self._weight_prev = self.get_all_weights(model="global")
         # ditto reference accuracy
         return_acc = evaluate_accuracy(self.eval_iter, self.model)
         lambda_list = [self.local_lambda]
@@ -139,7 +152,7 @@ class WorkerBase(metaclass=ABCMeta):
         batch_count, start = 0, time.time()
         for epoch in range(local_epoch): # number of local epochs 
             # retrieve local weights from the local model
-            self._weight_local = self.get_weights(model="local")
+            self._grad_weight_local = self.get_grad_weights(model="local")
 
             # global & local models training
             for X, y in self.train_iter:
@@ -153,11 +166,11 @@ class WorkerBase(metaclass=ABCMeta):
 
         if verbose:
             print(
-                "client_id: %s | local_acc: %.3f | refer_acc: %.3f (local_test_set) | Ditto: L %.3f, G %.3f | time: %.2f"
-                %(self.client_id, local_test_acc, return_acc, np.mean(lambda_list), self.global_lambda, time.time() - start)
+                "client_id: %s | local_acc: %.3f | prior: %.3f, post: %.3f (local_test_set) | Ditto: L %.3f, G %.3f | time: %.2f"
+                %(self.client_id, local_test_acc, return_acc, evaluate_accuracy(self.eval_iter, self.model), np.mean(lambda_list), self.global_lambda, time.time() - start)
             )
             
-        self._weight_cur = self.get_weights(model="global")
+        self._weight_cur = self.get_all_weights(model="global")
         self.calculate_weights_difference()
         self.upgrade_local()
         return self._gradients
@@ -190,4 +203,3 @@ class WorkerBase(metaclass=ABCMeta):
     @abstractmethod
     def evaluation(self):
         pass
-
