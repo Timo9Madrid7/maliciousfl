@@ -117,12 +117,12 @@ if __name__ == "__main__":
             temp_grads_list_.append(grads_upload)
             client_id_counter += 1
 
-            # Other attack strategies:
-            if grads_avg != None: # they start from the second rounds at leaset
-                if len(config.krum_clients) != 0: # Krum Attack
-                    temp_grads_list_ = krumAttack(temp_grads_list_, grads_avg, verbose=True)
-                if len(config.trimmedMean_clients) !=0: # Trimmed Mean Attack
-                    temp_grads_list_ = trimmedMeanAttack(temp_grads_list_, grads_avg)
+        # Other attack strategies:
+        if grads_avg != None: # they start from the second rounds at leaset
+            if len(config.krum_clients) != 0: # Krum Attack
+                temp_grads_list_ = krumAttack(temp_grads_list_, grads_avg.tolist(), verbose=True)
+            if len(config.trimmedMean_clients) !=0: # Trimmed Mean Attack
+                temp_grads_list_ = trimmedMeanAttack(temp_grads_list_, grads_avg.tolist())
 
         for grad in temp_grads_list_:
             grads_norm = np.linalg.norm(grad)
