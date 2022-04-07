@@ -80,7 +80,10 @@ if __name__ == "__main__":
             else:
                 train_iter = load_dataset(client_id, dataset=config.DATASET, test=False, batch=128, noniid=config._noniid)
             eval_iter = load_dataset(client_id, dataset=config.DATASET, test=True, batch=128, noniid=config._noniid)
-            local_model = LeNet().to(device)
+            if config.DATASET == "MNIST":
+                local_model = LeNet().to(device)
+            elif config.DATASET == "CIFAR10":
+                local_model = ResNet().to(device)
             local_model.load_state_dict(torch.load(config.local_models_path+client_id))
             local_optimizer = torch.optim.Adam(local_model.parameters(), config.llr)
             local_loss_func = torch.nn.CrossEntropyLoss()
