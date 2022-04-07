@@ -44,7 +44,7 @@ if __name__ == "__main__":
     print(
         'dataset:', config.DATASET, '| total rounds:', config.num_epochs, '| total clients:', config.total_number_clients, '| clients per round:', config.num_workers, '| distribution: %s'%('Non-IID' if config._noniid else 'IID'), 
         '\n',
-        '| dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen, '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
+        '| dpoff:', config._dpoff, '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
         '\n',
         'malicious clients:', len(config.malicious_clients), '| backdoor clients:', len(config.backdoor_clients), '| flipping clients:', len(config.flipping_clients),
         '\n',
