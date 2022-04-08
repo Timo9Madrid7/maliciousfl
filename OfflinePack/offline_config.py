@@ -72,8 +72,12 @@ trimmedMean_clients = [] # trimmed-mean attack with partial knowledge
 
 # deepsight
 # the number of parameters of an output layer neuron to neurons of the previous layer
-weight_index = 850
-bias_index = 10
+if DATASET == "MNIST":
+    weight_index = 850
+    bias_index = 10
+elif DATASET == "CIFAR10":
+    weight_index = 650
+    bias_index = 10
 
 # recording description 
 recording = False
