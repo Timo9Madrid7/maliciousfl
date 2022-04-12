@@ -53,6 +53,7 @@ class AvgGradientHandler(Handler):
             allow_single_cluster=True,
             min_samples=1,
         )
+        # self.printFlag = 0
         
         # moments_account:
         if self.grad_noise_sigma:
@@ -169,6 +170,27 @@ class AvgGradientHandler(Handler):
             grad_in (list/np.ndarray): the raw input weight_diffs
         """
         distance_matrix = pairwise_distances(grad_in-grad_in.mean(axis=0), metric='cosine')
+        # self.printFlag = 1
+        # if self.printFlag:
+        #     print("  : ", end="")
+        #     for i in range(distance_matrix.shape[0]):
+        #         if i < 10:
+        #             print("%d.   |"%i, end=" ")
+        #         else:
+        #             print("%d.  |"%i, end=" ")
+        #     print()
+        #     for i in range(distance_matrix.shape[0]):
+        #         if i < 10:
+        #             print("%d :"%i, end=" ")
+        #         else:
+        #             print("%d:"%i, end=" ")
+        #         for j in range(distance_matrix.shape[1]):
+        #             print("%.2f |"%distance_matrix[i,j], end=" ")
+        #         print()
+        #     print()
+        #     self.printFlag = 0
+        # else:
+        #     self.printFlag += 1
         return self.hdbscan_filter(distance_matrix, cluster_sel=cluster_sel)
 
     def neups_filter(self, grad_in):

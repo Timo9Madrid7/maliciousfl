@@ -3,6 +3,7 @@ import torchvision
 import random
 import numpy as np
 import argparse
+from noniidAug import mnist_noniid_aug
 
 class DataSplitter():
     def __init__(self, path: str, dataset="MNIST") -> None:
@@ -100,6 +101,7 @@ class DataSplitter():
                         client_train.append(train_samples[i].pop(random.randint(0,len(train_samples[i])-1)))
                 else:
                     client_train += train_samples[i]
+            # client_train = mnist_noniid_aug(client_train)
             random.shuffle(client_train)
             torch.save(client_train, self.path+save_path+"client_"+str(client)+".pt")
 
