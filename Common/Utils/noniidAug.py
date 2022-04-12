@@ -11,8 +11,8 @@ def mnist_noniid_aug(data, rotation_range=30, shift_range=0.2, shear_range=45, p
         if major_num_samples < len(slots[i]):
             major_num_samples = len(slots[i])
             major_class = i
-            
-    if major_num_samples/total_num_samples <= 0.2:
+    q = major_num_samples/total_num_samples  
+    if q <= 0.2:
         return data
 
     minor_classes = list(range(10))
@@ -29,7 +29,7 @@ def mnist_noniid_aug(data, rotation_range=30, shift_range=0.2, shear_range=45, p
     for i in minor_classes:
         minor_num_samples = len(slots[i])
         if minor_num_samples > 0:
-            chosen_samples = random.choices(slots[i], k=major_num_samples-minor_num_samples)
+            chosen_samples = random.choices(slots[i], k=int((4/(1/q-1)-1)*minor_num_samples))
             slots[i] += list(map(noniid_aug, chosen_samples))
             new_data += list(zip(slots[i], [i]*len(slots[i])))
 
