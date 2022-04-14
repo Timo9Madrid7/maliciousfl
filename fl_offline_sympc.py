@@ -19,6 +19,14 @@ import torch
 import random
 import numpy as np
 from copy import deepcopy
+import argparse
+
+def arg_praser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--protocol", type=str, default="fss", help="select from [falcon, fss], FSS works only for 2 parties while SPDZ could extend to N parties")
+    parser.add_argument("-l", "--level", type=str, default='semi-honest', help="select from [semi-honest, malicious] and only applicable for aby3 and falcon")
+    args = parser.parse_args()
+    return args
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
@@ -39,7 +47,8 @@ if __name__ == "__main__":
     aggregator = AvgGradientHandler(config, global_model, device, test_iter)
 
     # secure two-party computation initialize
-    s2pc = S2PC(eps1=2., minNumPts1=3, eps2=3., minNumPts2=5, precision=16)
+    args = arg_praser()
+    s2pc = S2PC(eps1=2., minNumPts1=3, eps2=3., minNumPts2=5, precision=16, protocol=args.protocol, level=args.level)
 
     print(
         'dataset:', config.DATASET, '| total rounds:', config.num_epochs, '| total clients:', config.total_number_clients, '| clients per round:', config.num_workers, '| distribution: %s'%('Non-IID' if config._noniid else 'IID'), 

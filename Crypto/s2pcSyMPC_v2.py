@@ -2,6 +2,7 @@ import syft as sy
 sy.logger.remove()
 from sympc.session import Session, SessionManager
 from sympc.config import Config
+import sympc.protocol as Protocol
 import torch 
 import numpy as np 
 from tqdm import tqdm
@@ -11,7 +12,7 @@ warnings.filterwarnings("ignore", "Temporarily disabling CUDA as FSS does not su
 
 class S2PC():
 
-    def __init__(self, eps1=2.5, minNumPts1=3, eps2=3., minNumPts2=5, precision=24):
+    def __init__(self, eps1=2.5, minNumPts1=3, eps2=3., minNumPts2=5, precision=24, protocol='fss', level='semi-honest'):
         """running S2PC will override torch.Tensor
 
         Args:
@@ -20,13 +21,23 @@ class S2PC():
         # SyMPC initialization 
         aggregator_vm = sy.VirtualMachine(name="aggregator")
         server_vm = sy.VirtualMachine(name='external_server')
+        tp_vm = sy.VirtualMachine(name="third_party")
         aggregator = aggregator_vm.get_root_client()
         server = server_vm.get_root_client()
+        tp = tp_vm.get_root_client()
         
         self.precision = precision
         cfg = Config(encoder_base=2, encoder_precision=self.precision)
         self.parties = [aggregator, server]
-        self.session = Session(parties=self.parties, config=cfg)
+        
+        if protocol == "fss":
+            share_protocol = Protocol.FSS('semi-honest')
+        elif protocol == "falcon":
+            share_protocol = Protocol.Falcon(level)
+            self.parties.append(tp)
+        self.protocol = protocol
+
+        self.session = Session(parties=self.parties, protocol=share_protocol, config=cfg)
         SessionManager.setup_mpc(session=self.session)
 
         self.cluster_base = EncDBSCAN(eps1, minNumPts1, self)
@@ -51,12 +62,9 @@ class S2PC():
 
     def share_dot(self, share1, share2):
         return share1 @ share2
-    
-    def share_div(self, share1, share2):
-        return share1 / share2
 
     def to_distance_matrix(self, grads_share):
-        grads_share_mean = sum(grads_share)/len(grads_share) # SyMPC supports sum()
+        grads_share_mean = sum(grads_share)*(1/len(grads_share)) # SyMPC supports sum()
         distance_matrix = [[0 for _ in range(len(grads_share))] for _ in range(len(grads_share))]
         for i in tqdm(range(len(grads_share))):
             for j in range(i+1, len(grads_share)):
@@ -139,7 +147,9 @@ class EncDBSCAN:
             for j in range(len(self.data)):
                 distance = sum([self.s2pc.share_mul(self.data[i][k]-self.data[j][k], self.data[i][k]-self.data[j][k]) for k in range(len(self.data))])
                 # print("%.3f %r|"%(distance.reconstruct(), self.s2pc.secrete_reconstruct(distance.le(self.radius)).type(torch.bool).item()), end=" ")
-                if self.s2pc.secrete_reconstruct(distance.le(self.radius)):
+                if self.s2pc.protocol=="fss" and self.s2pc.secrete_reconstruct(distance.le(self.radius)):
+                    tempGroup.append(j)
+                elif self.s2pc.protocol=='falcon' and self.s2pc.secrete_reconstruct(distance).le(self.radius):
                     tempGroup.append(j)
             # print()
             pointGroup.append(tempGroup)
