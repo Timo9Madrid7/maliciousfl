@@ -3,6 +3,7 @@ sy.logger.remove()
 from sympc.session import Session, SessionManager
 from sympc.config import Config
 import sympc.protocol as Protocol
+from sympc.protocol import ABY3
 import torch 
 import numpy as np 
 from tqdm import tqdm
@@ -35,6 +36,7 @@ class S2PC():
         elif protocol == "falcon":
             share_protocol = Protocol.Falcon(level)
             self.parties.append(tp)
+            self.aby3 = ABY3(level)
         self.protocol = protocol
 
         self.session = Session(parties=self.parties, protocol=share_protocol, config=cfg)
@@ -62,6 +64,9 @@ class S2PC():
 
     def share_dot(self, share1, share2):
         return share1 @ share2
+
+    def share_falcon_le(self, val1, val2):
+        return (self.aby3.bit_decomposition_ttp(val2-val1, session=self.session)[-1].reconstruct() == 0).item()
 
     def to_distance_matrix(self, grads_share):
         grads_share_mean = sum(grads_share)*(1/len(grads_share)) # SyMPC supports sum()
@@ -149,7 +154,7 @@ class EncDBSCAN:
                 # print("%.3f %r|"%(distance.reconstruct(), self.s2pc.secrete_reconstruct(distance.le(self.radius)).type(torch.bool).item()), end=" ")
                 if self.s2pc.protocol=="fss" and self.s2pc.secrete_reconstruct(distance.le(self.radius)):
                     tempGroup.append(j)
-                elif self.s2pc.protocol=='falcon' and self.s2pc.secrete_reconstruct(distance).le(self.radius):
+                elif self.s2pc.protocol=='falcon' and self.s2pc.share_falcon_le(distance, self.radius):
                     tempGroup.append(j)
             # print()
             pointGroup.append(tempGroup)
