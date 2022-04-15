@@ -66,7 +66,7 @@ class S2PC():
         return share1 @ share2
 
     def share_falcon_le(self, val1, val2):
-        return (self.aby3.bit_decomposition_ttp(val2-val1, session=self.session)[-1].reconstruct() == 0).item()
+        return not self.aby3.bit_decomposition_ttp(val2-val1, session=self.session)[-1].reconstruct(decode=False).item()
 
     def to_distance_matrix(self, grads_share):
         grads_share_mean = sum(grads_share)*(1/len(grads_share)) # SyMPC supports sum()
