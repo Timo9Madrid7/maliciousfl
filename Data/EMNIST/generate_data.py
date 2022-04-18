@@ -21,7 +21,7 @@ EMNIST.url = "https://www.itl.nist.gov/iaui/vip/cs_links/EMNIST/gzip.zip"
 N_CLASSES = 62
 RAW_DATA_PATH = "raw_data/"
 PATH = "noniid/"
-
+os.makedirs(PATH, exist_ok=True)
 
 def save_data(l, path_):
     with open(path_, 'wb') as f:
@@ -35,7 +35,7 @@ def parse_args():
         '--n_tasks',
         help='number of tasks/clients;',
         type=int,
-        required=True
+        default=100
     )
     parser.add_argument(
         '--pathological_split',
@@ -60,9 +60,9 @@ def parse_args():
     parser.add_argument(
         '--alpha',
         help='parameter controlling tasks dissimilarity, the smaller alpha is the more tasks are dissimilar; '
-             'default is 0.2',
+             'default is 1.0',
         type=float,
-        default=0.2)
+        default=1.0)
     parser.add_argument(
         '--s_frac',
         help='fraction of the dataset to be used; default: 0.2;',
