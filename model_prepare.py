@@ -1,5 +1,6 @@
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import resnet20 as ResNet
+from Common.Model.FEMNISTCNN import FemnistCNN
 from Common.Model.Generator import Generator
 from Common.Utils.data_loader import load_data_mnist
 from OfflinePack import offline_config as config
@@ -53,6 +54,16 @@ elif config.DATASET == "CIFAR10":
         torch.save(model.state_dict(), config.local_models_path+str(i))
     model_summary = summary(model, (3,32,32))
 
+elif config.DATASET == "EMNIST":
+    model = FemnistCNN()
+    if not os.path.exists('./Model/FemnistCNN'):
+        os.makedirs('./Model/FemnistCNN')
+    torch.save(model.state_dict(), config.global_models_path)
+    if not os.path.exists('./Model/FemnistCNN/Local_Models'):
+        os.makedirs('./Model/FemnistCNN/Local_Models')
+    for i in range(config.total_number_clients):
+        torch.save(model.state_dict(), config.local_models_path+str(i))
+    model_summary = summary(model, (1,28,28))
 
 # # Model info
 # model_load = LeNet()

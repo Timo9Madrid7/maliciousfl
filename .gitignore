@@ -131,7 +131,7 @@ dmypy.json
 *.bmp
 *.gif
 *.csv
-Model/
+/Model/
 .vscode/settings.json
 Data/CIFAR10/iid/*
 Data/CIFAR10/noniid/*

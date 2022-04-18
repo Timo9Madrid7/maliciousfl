@@ -11,6 +11,9 @@ elif DATASET == "CIFAR10":
     pretrained = True
     local_models_path = "./Model/ResNet/Local_Models/ResNet_"
     global_models_path = "./Model/ResNet/ResNet"
+elif DATASET == "EMNIST":
+    local_models_path = "./Model/FemnistCNN/Local_Models/FemnistCNN_"
+    global_models_path = "./Model/FemnistCNN/FemnistCNN"
 # global learning rate
 glr = 0.01
 # local epochs
@@ -82,6 +85,9 @@ if DATASET == "MNIST":
 elif DATASET == "CIFAR10":
     weight_index = 650
     bias_index = 10
+elif DATASET == "EMNIST":
+    weight_index = 126976
+    bias_index = 62
 
 # recording description 
 recording = False

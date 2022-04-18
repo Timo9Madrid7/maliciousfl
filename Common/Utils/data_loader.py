@@ -283,6 +283,8 @@ def load_testset(dataset="MNIST", batch=128):
         return load_all_test_mnist(batch=batch)
     elif dataset == "CIFAR10":
         return load_all_test_cifar10(batch=batch)
+    elif dataset == "EMNIST":
+        return torch.utils.data.DataLoader(torch.load("Data/EMNIST/server_test.pt"), batch_size=batch, shuffle=True, num_workers=0)
 
 def load_backdoor(client_index, dataset="MNIST", batch=128, noniid=True):
     if dataset == "MNIST":
