@@ -137,3 +137,5 @@ Data/CIFAR10/iid/*
 Data/CIFAR10/noniid/*
 Data/MNIST/iid/*
 Data/MNIST/noniid/*
+Data/EMNIST/*
+Data/EMNIST/noniid/*
