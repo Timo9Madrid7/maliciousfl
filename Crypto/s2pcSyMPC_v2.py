@@ -142,22 +142,29 @@ class EncDBSCAN:
         self.labels_, self.core_sample_indices_ = None, None
 
     def _neighbor_points(self):
-        pointGroup = []
-        for i in tqdm(range(len(self.data))):
-            tempGroup = []
-            # if i < 10:
-            #     print("%d : "%i, end="")
-            # else:
-            #     print("%d: "%i, end="")
-            for j in range(len(self.data)):
-                distance = sum([self.s2pc.share_mul(self.data[i][k]-self.data[j][k], self.data[i][k]-self.data[j][k]) for k in range(len(self.data))])
-                # print("%.3f %r|"%(distance.reconstruct(), self.s2pc.secrete_reconstruct(distance.le(self.radius)).type(torch.bool).item()), end=" ")
-                if self.s2pc.protocol=="fss" and self.s2pc.secrete_reconstruct(distance.le(self.radius)):
-                    tempGroup.append(j)
-                elif self.s2pc.protocol=='falcon' and self.s2pc.share_falcon_le(distance, self.radius):
-                    tempGroup.append(j)
-            # print()
-            pointGroup.append(tempGroup)
+        pointGroup = [[] for _ in range(self.numPoints)]
+        for i in tqdm(range(self.numPoints)):
+            for j in range(i+1, self.numPoints):
+                distance = sum([self.s2pc.share_mul(self.data[i][k]-self.data[j][k], self.data[i][k]-self.data[j][k]) for k in range(self.numPoints)])
+                if (self.s2pc.protocol=="fss" and self.s2pc.secrete_reconstruct(distance.le(self.radius))) or \
+                    (self.s2pc.protocol=='falcon' and self.s2pc.share_falcon_le(distance, self.radius)):
+                    pointGroup[i].append(j)
+                    pointGroup[j].append(i)
+        # for i in tqdm(range(self.numPoints)):
+        #     tempGroup = []
+        #     # if i < 10:
+        #     #     print("%d : "%i, end="")
+        #     # else:
+        #     #     print("%d: "%i, end="")
+        #     for j in range(self.numPoints):
+        #         distance = sum([self.s2pc.share_mul(self.data[i][k]-self.data[j][k], self.data[i][k]-self.data[j][k]) for k in range(self.numPoints)])
+        #         # print("%.3f %r|"%(distance.reconstruct(), self.s2pc.secrete_reconstruct(distance.le(self.radius)).type(torch.bool).item()), end=" ")
+        #         if self.s2pc.protocol=="fss" and self.s2pc.secrete_reconstruct(distance.le(self.radius)):
+        #             tempGroup.append(j)
+        #         elif self.s2pc.protocol=='falcon' and self.s2pc.share_falcon_le(distance, self.radius):
+        #             tempGroup.append(j)
+        #     # print()
+        #     pointGroup.append(tempGroup)
         return pointGroup
 
     def fit(self, data:list):
