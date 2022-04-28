@@ -4,6 +4,8 @@ from sympc.session import Session, SessionManager
 from sympc.config import Config
 import sympc.protocol as Protocol
 from sympc.protocol import ABY3
+from sympc.tensor.static import cat as fss_cat
+from sympc.tensor import MPCTensor
 import torch 
 import numpy as np 
 from tqdm import tqdm
@@ -31,12 +33,13 @@ class S2PC():
         cfg = Config(encoder_base=2, encoder_precision=self.precision)
         self.parties = [aggregator, server]
         
+        self.level = level
         if protocol == "fss":
             share_protocol = Protocol.FSS('semi-honest')
         elif protocol == "falcon":
-            share_protocol = Protocol.Falcon(level)
+            share_protocol = Protocol.Falcon(self.level)
             self.parties.append(tp)
-            self.aby3 = ABY3(level)
+            self.aby3 = ABY3(self.level)
         self.protocol = protocol
 
         self.session = Session(parties=self.parties, protocol=share_protocol, config=cfg)
@@ -66,15 +69,48 @@ class S2PC():
         return share1 @ share2
 
     def share_falcon_le(self, val1, val2):
-        return not self.aby3.bit_decomposition_ttp(val2-val1, session=self.session)[-1].reconstruct(decode=False).item()
+        return not self.aby3.bit_decomposition_ttp(val2-val1, session=self.session)[-1].reconstruct(decode=False)[0]
 
+    def cat_shares(self, list_of_shares):
+        if self.protocol == 'fss':
+            return fss_cat(list_of_shares)
+        elif self.protocol == 'falcon':
+            if self.level == 'semi-honest':
+                p1, p2, p3 = [], [], []
+                for share in list_of_shares:
+                    p1.append(share.get_shares()[0])
+                    p2.append(share.get_shares()[1])
+                    p3.append(share.get_shares()[2])
+                return MPCTensor(
+                    shares=[torch.cat(p1),torch.cat(p2),torch.cat(p3)],
+                    session=self.session,
+                    shape=torch.Size([len(list_of_shares)]))
+            elif self.level == 'malicious':
+                p10,p11, p20,p21, p30,p31 = [],[], [],[], [],[]
+                for share in list_of_shares:
+                    p10.append((share.get_shares()[0][0]))
+                    p11.append((share.get_shares()[0][1]))
+                    p20.append((share.get_shares()[1][0]))
+                    p21.append((share.get_shares()[1][1]))
+                    p30.append((share.get_shares()[2][0]))
+                    p31.append((share.get_shares()[2][1]))
+                return MPCTensor(
+                    shares=[
+                        torch.vstack([torch.cat(p10),torch.cat(p11)]),
+                        torch.vstack([torch.cat(p20),torch.cat(p21)]), 
+                        torch.vstack([torch.cat(p30),torch.cat(p31)])],
+                    session=self.session,
+                    shape=torch.Size([2, len(list_of_shares)]))
+      
     def to_distance_matrix(self, grads_share):
         grads_share_mean = sum(grads_share)*(1/len(grads_share)) # SyMPC supports sum()
-        distance_matrix = [[0 for _ in range(len(grads_share))] for _ in range(len(grads_share))]
+        distance_matrix = [[self.secrete_share([0.]) for _ in range(len(grads_share))] for _ in range(len(grads_share))]
+        cos_info = []
         for i in tqdm(range(len(grads_share))):
             for j in range(i+1, len(grads_share)):
                 distance_matrix[i][j] = distance_matrix[j][i] = 1. - self.share_dot(grads_share[i]-grads_share_mean, grads_share[j]-grads_share_mean).view(-1)
-        return distance_matrix
+            cos_info.append(self.cat_shares(distance_matrix[i]))
+        return cos_info
 
     def cosineFilter_s2pc(self, grads_list_:list, grads_ly_list_:list, verbose=True):
         grads_share = grads_list_
@@ -145,7 +181,10 @@ class EncDBSCAN:
         pointGroup = [[] for _ in range(self.numPoints)]
         for i in tqdm(range(self.numPoints)):
             for j in range(i+1, self.numPoints):
-                distance = sum([self.s2pc.share_mul(self.data[i][k]-self.data[j][k], self.data[i][k]-self.data[j][k]) for k in range(self.numPoints)])
+                if self.s2pc.level == 'semi-honest':
+                    distance = self.s2pc.share_mul(self.data[i]-self.data[j], self.data[i]-self.data[j]).sum().view(-1)
+                elif self.s2pc.level == 'malicious':
+                    distance = self.s2pc.share_mul(self.data[i]-self.data[j], self.data[i]-self.data[j]).sum(axis=1)
                 if (self.s2pc.protocol=="fss" and self.s2pc.secrete_reconstruct(distance.le(self.radius))) or \
                     (self.s2pc.protocol=='falcon' and self.s2pc.share_falcon_le(distance, self.radius)):
                     pointGroup[i].append(j)
