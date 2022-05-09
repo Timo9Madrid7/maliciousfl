@@ -1,10 +1,12 @@
 import syft as sy
 sy.logger.remove()
+import sympc
 from sympc.session import Session, SessionManager
 from sympc.config import Config
 import sympc.protocol as Protocol
 from sympc.protocol import ABY3
 from sympc.tensor.static import cat
+from sympc.encoder import FixedPointEncoder
 import torch 
 import numpy as np 
 from tqdm import tqdm
@@ -44,6 +46,11 @@ class S2PC():
         self.session = Session(parties=self.parties, protocol=share_protocol, config=cfg)
         SessionManager.setup_mpc(session=self.session)
 
+        self.fp_encoder = FixedPointEncoder(
+            base=self.session.config.encoder_base,
+            precision=self.session.config.encoder_precision    
+        )
+
         self.cluster_base = EncDBSCAN(eps1, minNumPts1, self)
         self.cluster_lastLayer = EncDBSCAN(eps2, minNumPts2, self)
 
@@ -52,8 +59,8 @@ class S2PC():
             secrete = torch.tensor(secrete)
         return secrete.share(session=self.session)
 
-    def secrete_reconstruct(self, share):
-        return share.reconstruct()
+    def secrete_reconstruct(self, share, decode=True):
+        return share.reconstruct(decode=decode)
 
     def share_add(self, share1, share2):
         return share1 + share2
@@ -67,8 +74,13 @@ class S2PC():
     def share_dot(self, share1, share2):
         return share1 @ share2
 
-    def share_falcon_le(self, val1, val2):
-        return not self.aby3.bit_decomposition_ttp(val2-val1, session=self.session)[-1].reconstruct(decode=False)[0]
+    def share_falcon_le(self, x, r):
+        r = self.fp_encoder.encode(r)
+        x_b = ABY3.bit_decomposition_ttp(x, session=self.session)
+        x_p = [ABY3.bit_injection(bit_share, self.session, sympc.tensor.PRIME_NUMBER) for bit_share in x_b]
+        tensor_type = sympc.utils.get_type_from_ring(self.session.ring_size)
+        result = Protocol.Falcon.private_compare(x_p, r.type(tensor_type))
+        return ~self.secrete_reconstruct(result, decode=False)
       
     def to_distance_matrix(self, grads_share):
         grads_share_mean = sum(grads_share)*(1/len(grads_share)) # SyMPC supports sum()
@@ -147,28 +159,24 @@ class EncDBSCAN:
 
     def _neighbor_points(self):
         pointGroup = [[] for _ in range(self.numPoints)]
+        distances = []
         for i in tqdm(range(self.numPoints)):
             for j in range(i+1, self.numPoints):
-                distance = self.s2pc.share_mul(self.data[i]-self.data[j], self.data[i]-self.data[j]).sum().view(-1)
-                if (self.s2pc.protocol=="fss" and self.s2pc.secrete_reconstruct(distance.le(self.radius))) or \
-                    (self.s2pc.protocol=='falcon' and self.s2pc.share_falcon_le(distance, self.radius)):
+                distances.append(self.s2pc.share_mul(self.data[i]-self.data[j], self.data[i]-self.data[j]).sum().view(-1))
+        distances = cat(distances)
+
+        if self.s2pc.protocol=='fss':
+            compare_result = self.s2pc.secrete_reconstruct(distances.le(self.radius))
+        elif self.s2pc.protocol == 'falcon':
+            compare_result = self.s2pc.share_falcon_le(distances, self.radius)
+        compare_result = compare_result.tolist()
+
+        for i in (range(self.numPoints)):
+            for j in range(i+1, self.numPoints):
+                if compare_result.pop(0):
                     pointGroup[i].append(j)
                     pointGroup[j].append(i)
-        # for i in tqdm(range(self.numPoints)):
-        #     tempGroup = []
-        #     # if i < 10:
-        #     #     print("%d : "%i, end="")
-        #     # else:
-        #     #     print("%d: "%i, end="")
-        #     for j in range(self.numPoints):
-        #         distance = sum([self.s2pc.share_mul(self.data[i][k]-self.data[j][k], self.data[i][k]-self.data[j][k]) for k in range(self.numPoints)])
-        #         # print("%.3f %r|"%(distance.reconstruct(), self.s2pc.secrete_reconstruct(distance.le(self.radius)).type(torch.bool).item()), end=" ")
-        #         if self.s2pc.protocol=="fss" and self.s2pc.secrete_reconstruct(distance.le(self.radius)):
-        #             tempGroup.append(j)
-        #         elif self.s2pc.protocol=='falcon' and self.s2pc.share_falcon_le(distance, self.radius):
-        #             tempGroup.append(j)
-        #     # print()
-        #     pointGroup.append(tempGroup)
+    
         return pointGroup
 
     def fit(self, data:list):
