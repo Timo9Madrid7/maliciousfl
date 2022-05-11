@@ -315,8 +315,8 @@ class AvgGradientHandler(Handler):
         for client_grad in grad_in:
             energy_weights = client_grad[-self.weight_index:-self.bias_index].reshape((self.bias_index,-1))
             energy_bias = client_grad[-self.bias_index::]
-            energy_neuron = np.abs(energy_weights).sum(axis=1) + np.abs(energy_bias)
-            energy_neuron /= energy_neuron.sum()
+            energy_neuron = np.square(np.abs(energy_weights).sum(axis=1) + np.abs(energy_bias))
+            energy_neuron /= energy_neuron.sum() # refer to eq.(8)
             neups.append(energy_neuron.tolist())
 
         return np.array(neups)
