@@ -59,7 +59,7 @@ malicious_clients = [] # malicious random uploading attacks will override other 
 
 backdoor_clients = [] # backdoor attacks will override flipping attacks
 backdoor_target = 0 # 1 is not realistic for CIFAR-10
-# backdoor attack for MNIST
+# backdoor attack for MNIST and EMNIST
 backdoor_pdr = 0
 # backdoor attack for CIFAR-10
 num_inserted = 100

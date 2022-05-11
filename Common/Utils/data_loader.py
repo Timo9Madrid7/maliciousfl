@@ -1,5 +1,6 @@
 from Common.Utils.backdoorInjection import backdoor_mnist, backdoor_mnist_test, flipping_mnist, flipping_mnist_test
 from Common.Utils.backdoorInjection import backdoor_cifar10, backdoor_cifar10_test, flipping_cifar10, flipping_cifar10_test
+from Common.Utils.backdoorInjection import backdoor_emnist, backdoor_emnist_test, flipping_emnist, flipping_emnist_test
 
 import torch
 import torchvision
@@ -269,6 +270,48 @@ def load_data_edge_case_cifar10_test(batch=128):
 
     return torch.utils.data.DataLoader(fake_labels_data, batch_size=batch, shuffle=True, num_workers=0), torch.utils.data.DataLoader(true_labels_data, batch_size=batch, shuffle=True, num_workers=0)
 
+def load_data_backdoor_emnist(client_index, batch=128, noniid=True):
+    if noniid:
+        path="./Data/EMNIST/noniid"
+    else:
+        path="./Data/EMNIST/iid"
+    data = torch.load(path+'/'+'client_'+client_index+'.pt')
+    data = list(map(backdoor_emnist, data))
+    return torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
+
+def load_data_backdoor_emnist_test(batch=128):
+    test = list(map(backdoor_emnist_test, torch.load("Data/EMNIST/server_test.pt")))
+    return torch.utils.data.DataLoader(test, batch_size=batch, shuffle=True, num_workers=0)
+
+def load_data_flipping_emnist(client_index, batch=128, noniid=True):
+    if noniid:
+        path="./Data/EMNIST/noniid"
+    else:
+        path="./Data/EMNIST/iid"
+    data = torch.load(path+'/'+'client_'+client_index+'.pt')
+    data = list(map(flipping_emnist, data))
+    return torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
+
+def load_data_flipping_emnist_test(batch=128):
+    test = list(map(flipping_emnist_test, torch.load("Data/EMNIST/server_test.pt")))
+    return torch.utils.data.DataLoader(test, batch_size=batch, shuffle=True, num_workers=0)
+
+def load_data_edge_case_emnist(client_index, num_edge_case=60, batch=128, noniid=True):
+    """edge-case attack is as the same as MNIST's"""
+    if noniid:
+        path="./Data/EMNIST/noniid"
+    else:
+        path="./Data/EMNIST/iid"
+    data = torch.load(path+'/'+'client_'+client_index+'.pt')
+    edge_case = random.sample(torch.load('./Data/Ardis_IV/edge_case_train_7.pt'), k=num_edge_case)
+    data += edge_case
+    return torch.utils.data.DataLoader(data, batch_size=batch, shuffle=True, num_workers=0)
+
+def load_data_edge_case_emnist_test(batch=128):
+    fake_labels_data = torch.load('./Data/Ardis_IV/edge_case_test_7.pt')
+    true_labels_data = torch.load('./Data/Ardis_IV/edge_case_test_true_7.pt')
+    return torch.utils.data.DataLoader(fake_labels_data, batch_size=batch, shuffle=True, num_workers=0), torch.utils.data.DataLoader(true_labels_data, batch_size=batch, shuffle=True, num_workers=0)
+
 def load_dataset(client_index, dataset="MNIST", test=False, batch=128, noniid=False):
     if noniid:
         path = "./Data/" + dataset + "/noniid/client_"
@@ -291,33 +334,45 @@ def load_backdoor(client_index, dataset="MNIST", batch=128, noniid=True):
         return load_data_backdoor_mnist(client_index, batch=batch, noniid=noniid)
     elif dataset == "CIFAR10":
         return load_data_backdoor_cifar10(client_index, batch=batch, noniid=noniid)
+    elif dataset == "EMNIST":
+        return load_data_backdoor_emnist(client_index, batch=batch, noniid=noniid)
 
 def load_backdoor_test(dataset="MNIST", batch=128):
     if dataset == "MNIST":
         return load_data_backdoor_mnist_test(batch=batch)
     elif dataset == "CIFAR10":
         return load_data_backdoor_cifar10_test(batch=batch)
+    elif dataset == "EMNIST":
+        return load_data_backdoor_emnist_test(batch=batch)
 
 def load_flipping(client_index, dataset="MNIST", batch=128, noniid=True):
     if dataset == "MNIST":
         return load_data_flipping_mnist(client_index, batch=batch, noniid=noniid)
     elif dataset == "CIFAR10":
         return load_data_flipping_cifar10(client_index, batch=batch, noniid=noniid)
+    elif dataset == "EMNIST":
+        return load_data_flipping_emnist(client_index, batch=batch, noniid=noniid)
 
 def load_flipping_test(dataset="MNIST", batch=128):
     if dataset == "MNIST":
         return load_data_flipping_mnist_test(batch=batch)
     elif dataset == "CIFAR10":
         return load_data_flipping_cifar10_test(batch=batch)
+    elif dataset == "EMNIST":
+        return load_data_flipping_emnist_test(batch=batch)
 
 def load_edgecase(client_index, dataset="MNIST", num_edge_case=60, batch=128, noniid=True):
     if dataset == "MNIST":
         return load_data_edge_case_mnist(client_index, num_edge_case, batch, noniid)
     elif dataset == "CIFAR10":
         return load_data_edge_case_cifar10(client_index, num_edge_case, batch, noniid)
+    elif dataset == "EMNIST":
+        return load_data_edge_case_emnist(client_index, num_edge_case, batch, noniid)
 
 def load_edgecase_test(dataset="MNIST", batch=128):
     if dataset == "MNIST":
         return load_data_edge_case_mnist_test(batch)
     elif dataset == "CIFAR10":
         return load_data_edge_case_cifar10_test(batch)
+    elif dataset == "EMNIST":
+        return load_data_edge_case_emnist_test(batch)
