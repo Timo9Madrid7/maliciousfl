@@ -173,6 +173,7 @@ class WorkerBase(metaclass=ABCMeta):
         self._weight_cur = self.get_all_weights(model="global")
         self.calculate_weights_difference()
         self.upgrade_local()
+        self.model.zero_grad(), self.local_model.zero_grad()
         return self._gradients
 
         clip_bound = self.update()

@@ -11,6 +11,9 @@ elif DATASET == "CIFAR10":
     pretrained = True
     local_models_path = "./Model/ResNet/Local_Models/ResNet_"
     global_models_path = "./Model/ResNet/ResNet"
+elif DATASET == "EMNIST":
+    local_models_path = "./Model/EmnistCNN/Local_Models/EmnistCNN_"
+    global_models_path = "./Model/EmnistCNN/EmnistCNN"
 # global learning rate
 glr = 0.01
 # local epochs
@@ -52,7 +55,7 @@ malicious_clients = [] # malicious random uploading attacks will override other 
 
 backdoor_clients = [] # backdoor attacks will override flipping attacks
 backdoor_target = 0 # 1 is not realistic for CIFAR-10
-# backdoor attack for MNIST
+# backdoor attack for MNIST and EMNIST
 backdoor_pdr = 0
 # backdoor attack for CIFAR-10
 num_inserted = 100
@@ -78,6 +81,9 @@ if DATASET == "MNIST":
 elif DATASET == "CIFAR10":
     weight_index = 650
     bias_index = 10
+elif DATASET == "EMNIST":
+    weight_index = 7440
+    bias_index = 62
 
 # recording description 
 recording = False

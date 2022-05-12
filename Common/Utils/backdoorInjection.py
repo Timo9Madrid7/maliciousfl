@@ -61,3 +61,33 @@ def flipping_cifar10(data:list, pdr=flipping_pdr):
 
 def flipping_cifar10_test(data:list):
     return data[0], 9-data[1]
+
+def backdoor_emnist(data:list, pdr=backdoor_pdr, target=backdoor_target):
+    if np.random.rand() < pdr:
+        return data[0]+injection, target 
+    else:
+        return data[0], data[1]
+
+def backdoor_emnist_test(data:list, target=backdoor_target):
+    return data[0]+injection, target
+
+def flipping_emnist(data:list, pdr=flipping_pdr):
+    if np.random.rand() < pdr:
+        if data[1] < 10:
+            flipping_label = 9 - data[1]
+        elif data[1] < 36:
+            flipping_label = 10 + (35-data[1])
+        else: # data[1] < 62:
+            flipping_label = 36 + (61-data[1])
+        return data[0], flipping_label
+    else:
+        return data[0], data[1]
+
+def flipping_emnist_test(data:list):
+    if data[1] < 10:
+        flipping_label = 9 - data[1]
+    elif data[1] < 36:
+        flipping_label = 10 + (35-data[1])
+    else: # data[1] < 62:
+        flipping_label = 36 + (61-data[1])
+    return data[0], flipping_label

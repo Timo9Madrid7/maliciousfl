@@ -1,6 +1,7 @@
 # Utils
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import resnet20 as ResNet
+from Common.Model.LeNet import EmnistCNN
 from Common.Utils.data_loader import load_dataset, load_testset
 from Common.Utils.data_loader import load_data_mnist, load_data_dpclient_mnist
 from Common.Utils.data_loader import load_backdoor, load_backdoor_test, load_flipping, load_flipping_test, load_edgecase, load_edgecase_test
@@ -27,6 +28,8 @@ if __name__ == "__main__":
         global_model = LeNet().to(device)
     elif config.DATASET == "CIFAR10":
         global_model = ResNet().to(device)
+    elif config.DATASET == "EMNIST":
+        global_model = EmnistCNN().to(device)
 
     level_length = [0]
     for _, param in global_model.state_dict().items():
@@ -84,6 +87,8 @@ if __name__ == "__main__":
                 local_model = LeNet().to(device)
             elif config.DATASET == "CIFAR10":
                 local_model = ResNet().to(device)
+            elif config.DATASET == "EMNIST":
+                local_model = EmnistCNN().to(device)
             local_model.load_state_dict(torch.load(config.local_models_path+client_id))
             local_optimizer = torch.optim.Adam(local_model.parameters(), config.llr)
             local_loss_func = torch.nn.CrossEntropyLoss()
