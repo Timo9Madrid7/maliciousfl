@@ -9,6 +9,7 @@ from sympc.tensor.static import cat
 from sympc.encoder import FixedPointEncoder
 import torch 
 import numpy as np 
+import random
 from tqdm import tqdm
 
 import warnings
@@ -16,7 +17,7 @@ warnings.filterwarnings("ignore", "Temporarily disabling CUDA as FSS does not su
 
 class S2PC():
 
-    def __init__(self, eps1=2.5, minNumPts1=3, eps2=3., minNumPts2=5, precision=24, protocol='fss', level='semi-honest'):
+    def __init__(self, eps1=2.5, minNumPts1=3, eps2=3., minNumPts2=5, precision=24, protocol='fss', level='semi-honest', is_auto_dbscan=True):
         """running S2PC will override torch.Tensor
 
         Args:
@@ -53,6 +54,7 @@ class S2PC():
 
         self.cluster_base = EncDBSCAN(eps1, minNumPts1, self)
         self.cluster_lastLayer = EncDBSCAN(eps2, minNumPts2, self)
+        self.is_auto_dbscan = is_auto_dbscan
 
     def secrete_share(self, secrete):
         if type(secrete) != torch.Tensor:
@@ -74,14 +76,17 @@ class S2PC():
     def share_dot(self, share1, share2):
         return share1 @ share2
 
-    def share_falcon_le(self, x, r):
-        r = self.fp_encoder.encode(r)
-        x_b = ABY3.bit_decomposition_ttp(x, session=self.session)
-        x_p = [ABY3.bit_injection(bit_share, self.session, sympc.tensor.PRIME_NUMBER) for bit_share in x_b]
-        tensor_type = sympc.utils.get_type_from_ring(self.session.ring_size)
-        result = Protocol.Falcon.private_compare(x_p, r.type(tensor_type))
-        return ~self.secrete_reconstruct(result, decode=False)
-      
+    def public_compare(self, x, r):
+        if self.protocol == 'fss':
+            return self.secrete_reconstruct(x.le(r))
+        elif self.protocol == 'falcon':
+            r = self.fp_encoder.encode(r)
+            x_b = ABY3.bit_decomposition_ttp(x, session=self.session)
+            x_p = [ABY3.bit_injection(bit_share, self.session, sympc.tensor.PRIME_NUMBER) for bit_share in x_b]
+            tensor_type = sympc.utils.get_type_from_ring(self.session.ring_size)
+            result = Protocol.Falcon.private_compare(x_p, r.type(tensor_type))
+            return ~self.secrete_reconstruct(result, decode=False)
+
     def to_distance_matrix(self, grads_share):
         grads_share_mean = sum(grads_share)*(1/len(grads_share)) # SyMPC supports sum()
         distance_matrix = [[self.secrete_share([0.]) for _ in range(len(grads_share))] for _ in range(len(grads_share))]
@@ -142,6 +147,27 @@ class S2PC():
             bengin_id = np.where(label==majority)[0].tolist()
         return bengin_id
 
+    def auto_dbscan(self, distance_list:list):
+        def quickMedian(nums:list, k:int):
+            if len(nums) == 1: 
+                return nums[0]
+
+            ref = (cat(nums) - random.choice(nums)).reconstruct()
+            lows = [nums[i] for i in torch.where(ref<0)[0]]
+            highs = [nums[i] for i in torch.where(ref>0)[0]]
+            pivots = [nums[i] for i in torch.where(ref==0)[0]]
+
+            if k < len(lows):
+                return quickMedian(lows, k)
+            elif k < len(lows) + len(pivots):
+                return pivots[0]
+            else:
+                return quickMedian(highs, k-len(lows)-len(pivots))
+
+        eps = quickMedian(distance_list, len(distance_list)//2)
+
+        return eps
+
 class EncDBSCAN:
     def __init__(self, radius:float, minPoints:int, s2pc=None):
         self.radius = radius 
@@ -158,26 +184,36 @@ class EncDBSCAN:
         self.labels_, self.core_sample_indices_ = None, None
 
     def _neighbor_points(self):
-        pointGroup = [[] for _ in range(self.numPoints)]
-        distances = []
-        for i in tqdm(range(self.numPoints)):
-            for j in range(i+1, self.numPoints):
-                distances.append(self.s2pc.share_mul(self.data[i]-self.data[j], self.data[i]-self.data[j]).sum().view(-1))
-        distances = cat(distances)
+        if not self.s2pc.is_auto_dbscan:
+            pointGroup = [[i] for i in range(self.numPoints)]
+            distances = []
+            for i in tqdm(range(self.numPoints)):
+                for j in range(i+1, self.numPoints):
+                    distances.append(self.s2pc.share_mul(self.data[i]-self.data[j], self.data[i]-self.data[j]).sum().view(-1))
+            distances = cat(distances)
+            compare_result = self.s2pc.public_compare(distances, self.radius).tolist()
 
-        if self.s2pc.protocol=='fss':
-            compare_result = self.s2pc.secrete_reconstruct(distances.le(self.radius))
-        elif self.s2pc.protocol == 'falcon':
-            compare_result = self.s2pc.share_falcon_le(distances, self.radius)
-        compare_result = compare_result.tolist()
+            for i in range(self.numPoints):
+                for j in range(i+1, self.numPoints):
+                    if compare_result.pop(0):
+                        pointGroup[i].append(j)
+                        pointGroup[j].append(i)   
+            return pointGroup
 
-        for i in (range(self.numPoints)):
-            for j in range(i+1, self.numPoints):
-                if compare_result.pop(0):
-                    pointGroup[i].append(j)
-                    pointGroup[j].append(i)
-    
-        return pointGroup
+        else:
+            pointGroup = []
+            distance_matrix = [[self.s2pc.secrete_share([0.]) for _ in range(self.numPoints)] for _ in range(self.numPoints)]
+            eps_list = []
+            for i in tqdm(range(self.numPoints)):
+                for j in range(i+1, self.numPoints):
+                    distance_matrix[i][j] = distance_matrix[j][i] = self.s2pc.share_mul(self.data[i]-self.data[j], self.data[i]-self.data[j]).sum().view(-1)
+                eps_list.append(self.s2pc.auto_dbscan(distance_matrix[i]))
+            self.radius = sum(eps_list)*(1/len(eps_list))
+            
+            for i in range(self.numPoints):
+                indices = self.s2pc.secrete_reconstruct(cat(distance_matrix[i]) - self.radius) <= 0
+                pointGroup.append(torch.where(indices)[0].tolist())
+            return pointGroup
 
     def fit(self, data:list):
         self.data = data 

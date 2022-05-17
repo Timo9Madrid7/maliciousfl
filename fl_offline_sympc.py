@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     # secure two-party computation initialize
     args = arg_praser()
-    s2pc = S2PC(eps1=2., minNumPts1=3, eps2=3., minNumPts2=5, precision=16, protocol=args.protocol, level=args.level)
+    s2pc = S2PC(eps1=config.l1_dbscan_eps, minNumPts1=config.l1_dbscan_minPts, eps2=config.l2_dbscan_eps, minNumPts2=config.l2_dbscan_minPts, precision=16, protocol=args.protocol, level=args.level, is_auto_dbscan=config.is_auto_dbscan)
 
     print(
         'dataset:', config.DATASET, '| total rounds:', config.num_epochs, '| total clients:', config.total_number_clients, '| clients per round:', config.num_workers, '| distribution: %s'%('Non-IID' if config._noniid else 'IID'), 
