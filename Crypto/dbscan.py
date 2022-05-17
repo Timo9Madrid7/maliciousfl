@@ -88,9 +88,21 @@ class EncDBSCAN:
 
     def _neighbor_points(self):
         pointGroup = []
-        for i in  range(len(self.data)):
-            indices = self.s2pc.get_plain_text((self.data - self.data[i]).square().sum(axis=1) <= self.radius)
-            pointGroup.append(torch.where(indices)[0].tolist())
+        if not self.s2pc.is_auto_dbscan:
+            for i in range(self.numPoints):
+                indices = self.s2pc.get_plain_text((self.data - self.data[i]).square().sum(axis=1) <= self.radius)
+                pointGroup.append(torch.where(indices)[0].tolist())
+        else:
+            distance_list, eps_list = [], []
+            for i in range(self.numPoints):
+                distance = (self.data - self.data[i]).square().sum(axis=1)
+                eps = self.s2pc.auto_dbscan(distance)
+                distance_list.append(distance)
+                eps_list.append(eps)
+            self.radius = sum(eps_list)/len(eps_list)
+            for i in range(self.numPoints):
+                indices = self.s2pc.get_plain_text(distance_list[i] - self.radius) <= 0
+                pointGroup.append(torch.where(indices)[0].tolist())
         return pointGroup
 
     def fit(self, data:torch.Tensor):

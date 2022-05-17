@@ -42,7 +42,7 @@ if __name__ == "__main__":
     aggregator = AvgGradientHandler(config, global_model, device, test_iter)
 
     # secure two-party computation initialize
-    s2pc = S2PC()
+    s2pc = S2PC(config.l1_dbscan_eps, config.l1_dbscan_minPts, config.l2_dbscan_eps, config.l2_dbscan_minPts, is_auto_dbscan=config.is_auto_dbscan)
 
     print(
         'dataset:', config.DATASET, '| total rounds:', config.num_epochs, '| total clients:', config.total_number_clients, '| clients per round:', config.num_workers, '| distribution: %s'%('Non-IID' if config._noniid else 'IID'), 

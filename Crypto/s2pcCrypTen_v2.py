@@ -5,11 +5,12 @@ import crypten.communicator as comm
 from crypten.config import cfg
 import torch
 import numpy as np
+import random
 
 
 class S2PC():
 
-    def __init__(self, eps1=2.5, minNumPts1=3, eps2=3., minNumPts2=5, precision=24):
+    def __init__(self, eps1=2.5, minNumPts1=3, eps2=3., minNumPts2=5, precision=24, is_auto_dbscan=True):
         self.precision = precision
         cfg.encoder.precision_bits = self.precision
         crypten.init()
@@ -17,6 +18,7 @@ class S2PC():
 
         self.cluster_base = EncDBSCAN(eps1, minNumPts1, self)
         self.cluster_lastLayer = EncDBSCAN(eps2, minNumPts2, self)
+        self.is_auto_dbscan = is_auto_dbscan
 
     def get_plain_text(self, x):
         return x.get_plain_text()
@@ -138,6 +140,27 @@ class S2PC():
             for j in range(i+1, len(grads_secrete)):
                  distance_matrix[i][j] = distance_matrix[j][i] = 1 - ((grads_secrete[i]-grads_secrete_mean).dot(grads_secrete[j]-grads_secrete_mean))
         return distance_matrix
+
+    def auto_dbscan(self, cryptensor):
+        def quickMedian(nums, k):
+            if len(nums) == 1: 
+                return nums[0]
+
+            ref = (nums - random.choice(nums)).get_plain_text()
+            lows = nums[torch.where(ref<0)[0]]
+            highs = nums[torch.where(ref>0)[0]]
+            pivots = nums[torch.where(ref==0)[0]]
+
+            if k < len(lows):
+                return quickMedian(lows, k)
+            elif k < len(lows) + len(pivots):
+                return pivots[0]
+            else:
+                return quickMedian(highs, k-len(lows)-len(pivots))
+
+        eps = quickMedian(cryptensor, len(cryptensor)//2)
+
+        return eps
 
     def filters_parameters_tuning(self, grads_list_:list, grads_ly_list_:list, verbose=True):
         grad_share = torch.tensor(grads_list_)

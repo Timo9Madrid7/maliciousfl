@@ -88,3 +88,15 @@ elif DATASET == "EMNIST":
 # recording description 
 recording = False
 surffix = ""
+
+# Auto DBSCAN
+is_auto_dbscan = True
+if is_auto_dbscan:
+    l1_dbscan_eps = l2_dbscan_eps = 0.
+    l1_dbscan_minPts = l2_dbscan_minPts = num_workers // 2 + 1
+# the following hyper-parameters only work when is_auto_dbscan is False
+else:
+    l1_dbscan_eps = 2.2
+    l1_dbscan_minPts = 10
+    l2_dbscan_eps = 2.5
+    l2_dbscan_minPts = 10
