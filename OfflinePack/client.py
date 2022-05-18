@@ -55,7 +55,7 @@ class OfflineClient(WorkerBaseDitto):
     
     def malicious_random_upload(self):
         num_params = sum([params.numel() for params in self.model.state_dict().values()])
-        gradients,b = np.random.normal(self.clippingBound, 1, size=(num_params,)), 1
+        gradients,b = np.random.normal(0, 1, size=(num_params,)), 1
         if not self.dpoff:
             gradients += np.random.normal(0, self.grad_noise_sigma*self.clippingBound/np.sqrt(self.clients_per_round), size=gradients.shape)
             b += np.random.normal(0, self.b_noise_std/np.sqrt(self.clients_per_round))
