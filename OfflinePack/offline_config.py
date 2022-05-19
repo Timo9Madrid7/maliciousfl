@@ -74,7 +74,11 @@ edge_case_test = False
 edge_case_num = 300
 
 # other byzantine attack (collude)
+# Krum
 krum_clients = [] # Krum attack with partial knowledge
+krum_threshold = 1e-2
+krum_eps = 1e-3
+# Trimmed-mean
 trimmedMean_clients = [] # trimmed-mean attack with partial knowledge
 
 # deepsight

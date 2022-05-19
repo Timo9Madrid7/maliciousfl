@@ -27,6 +27,7 @@ def krumAttackPartial(w_local:torch.Tensor, w_global:torch.Tensor, threshold=1e-
     
     inserted_num = 1
     lambd = lambd_init * 2
+    w_craft = (w_global - lambd*sign_vector/2)
     while(lambd>=threshold):
         if verbose:
             print(".", end="")
@@ -40,10 +41,11 @@ def krumAttackPartial(w_local:torch.Tensor, w_global:torch.Tensor, threshold=1e-
         kNNDist, kNN = torch.topk(dist, k=k+1, largest=False)
         
         if kNNDist.sum(axis=1).argmin() == 0 and lambd>=threshold:
-            return [(w_craft+eps*torch.rand(w_craft.shape)/(w_craft.shape[0]**0.5)).tolist() for _ in range(m)]
+            break
         elif lambd < threshold:
             inserted_num += 1
             lambd = lambd_init
+    return [w_craft.tolist()] + [(w_craft+eps*torch.rand(w_craft.shape)/(w_craft.shape[0]**0.5)).tolist() for _ in range(m-1)]
 
 def krumAttack(grads_list_, grads_avg, threshold=1e-5, eps=1e-3, verbose=True):
     if verbose:
