@@ -134,7 +134,7 @@ if __name__ == "__main__":
         # Other attack strategies:
         if grads_avg != None: # they start from the second rounds at leaset
             if len(config.krum_clients) != 0: # Krum Attack
-                temp_grads_list_ = krumAttack(temp_grads_list_, grads_avg.tolist(), verbose=True)
+                temp_grads_list_ = krumAttack(temp_grads_list_, grads_avg.tolist(), threshold=config.krum_threshold, eps=config.krum_eps, verbose=True)
             if len(config.trimmedMean_clients) !=0: # Trimmed Mean Attack
                 temp_grads_list_ = trimmedMeanAttack(temp_grads_list_, grads_avg.tolist())
 
