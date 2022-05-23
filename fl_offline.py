@@ -44,7 +44,9 @@ if __name__ == "__main__":
     print(
         'dataset:', config.DATASET, '| total rounds:', config.num_epochs, '| total clients:', config.total_number_clients, '| clients per round:', config.num_workers, '| distribution: %s'%('Non-IID' if config._noniid else 'IID'), 
         '\n',
-        '| dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen, '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
+        'dpoff:', config._dpoff, ' | dpcompen:', config._dpcompen, '| grad_noise_sigma:', config.grad_noise_sigma, '| b_noise_std:', config.b_noise_std, '| clip_ratio:', config.gamma,
+        '\n',
+        'offline poison type:', config.offline_poison,
         '\n',
         'malicious clients:', len(config.malicious_clients), '| backdoor clients:', len(config.backdoor_clients), '| flipping clients:', len(config.flipping_clients),
         '\n',
@@ -69,11 +71,11 @@ if __name__ == "__main__":
             if config.dp_test and config.dp_in and client_id == config.dp_client:
                 client_dp_counter += 1
                 train_iter = load_data_dpclient_mnist(config.dp_client, noniid=config._noniid)
-            elif client_id_counter in config.backdoor_clients:
+            elif not config.offline_poison and client_id_counter in config.backdoor_clients:
                 train_iter = load_backdoor(client_id, dataset=config.DATASET, noniid=config._noniid)
-            elif client_id_counter in config.flipping_clients:
+            elif not config.offline_poison and client_id_counter in config.flipping_clients:
                 train_iter = load_flipping(client_id, dataset=config.DATASET, noniid=config._noniid)
-            elif client_id_counter in config.edge_case_clinets:
+            elif not config.offline_poison and client_id_counter in config.edge_case_clinets:
                 train_iter = load_edgecase(client_id, dataset=config.DATASET, num_edge_case=config.edge_case_num, noniid=config._noniid)
             else:
                 train_iter = load_dataset(client_id, dataset=config.DATASET, test=False, batch=128, noniid=config._noniid)
@@ -145,13 +147,13 @@ if __name__ == "__main__":
     
     if config.dp_test:
         print("client_%s showed %d times"%(config.dp_client, client_dp_counter))
-    if config.backdoor_clients != []:
+    if config.offline_poison == "backdoor" or config.backdoor_clients != []:
         backdoor_test_iter = load_backdoor_test(dataset=config.DATASET)
         print("backdoor accuracy: %.3f"%evaluate_accuracy(backdoor_test_iter, global_model, device))
-    if config.flipping_clients != []:
+    if config.offline_poison == "flipping" or config.flipping_clients != []:
         flipping_test_iter = load_flipping_test(dataset=config.DATASET)
         print("flipping accuracy: %.3f"%evaluate_accuracy(flipping_test_iter, global_model, device))
-    if config.edge_case_clinets != [] or config.edge_case_test:
+    if config.offline_poison == "edge" or config.edge_case_clinets != [] or config.edge_case_test:
         edge_case_test_iter_true_fake, edge_case_test_iter_true = load_edgecase_test(dataset=config.DATASET)
         print("edge cases BA(true->fake): %.3f | MA(true->true): %.3f"%(evaluate_accuracy(edge_case_test_iter_true_fake, global_model, device), evaluate_accuracy(edge_case_test_iter_true, global_model, device)))
 

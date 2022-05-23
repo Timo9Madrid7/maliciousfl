@@ -55,19 +55,21 @@ reconstruct_inference = False # replace the last client by default
 target = 3
 
 # byzantine clients
+offline_poison = ""
+# random uploads
 malicious_clients = [] # malicious random uploading attacks will override other attacks
 
 backdoor_clients = [] # backdoor attacks will override flipping attacks
 backdoor_target = 0 # 1 is not realistic for CIFAR-10
 # backdoor attack for MNIST and EMNIST
-backdoor_pdr = 0
+backdoor_pdr = 0.2
 # backdoor attack for CIFAR-10
 num_inserted = 100
 semantic_feature = "stripe" # [stripe, wall, green]
 test_only = False
 
 flipping_clients = [] # flipping attacks will override edge-case attack
-flipping_pdr = 0
+flipping_pdr = 0.8
 
 edge_case_clinets = [] # edge-case attack will be overrode by other attacks
 edge_case_test = False 
