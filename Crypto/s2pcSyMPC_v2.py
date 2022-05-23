@@ -88,13 +88,17 @@ class S2PC():
             return ~self.secrete_reconstruct(result, decode=False)
 
     def to_distance_matrix(self, grads_share):
-        grads_share_mean = sum(grads_share)*(1/len(grads_share)) # SyMPC supports sum()
-        distance_matrix = [[self.secrete_share([0.]) for _ in range(len(grads_share))] for _ in range(len(grads_share))]
+        num_grads = len(grads_share)
+        grads_share_mean = sum(grads_share)*(1/num_grads) # SyMPC supports sum()
+        grads_share_cat = cat(grads_share).reshape(num_grads,-1) - grads_share_mean
+        
         cos_info = []
-        for i in tqdm(range(len(grads_share))):
-            for j in range(i+1, len(grads_share)):
-                distance_matrix[i][j] = distance_matrix[j][i] = 1. - self.share_dot(grads_share[i]-grads_share_mean, grads_share[j]-grads_share_mean).view(-1)
-            cos_info.append(cat(distance_matrix[i]))
+        for i in tqdm(range(num_grads)):
+            zero_mask_i = torch.ones(num_grads)
+            zero_mask_i[i] = zero_mask_i[i] * 0.
+            distance = 1. - self.share_dot((grads_share[i]-grads_share_mean), grads_share_cat.transpose(1,0))
+            distance = self.share_mul(distance, zero_mask_i)
+            cos_info.append(distance)
         return cos_info
 
     def cosineFilter_s2pc(self, grads_list_:list, grads_ly_list_:list, verbose=True):
