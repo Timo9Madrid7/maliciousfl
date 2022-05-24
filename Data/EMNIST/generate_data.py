@@ -18,10 +18,6 @@ from utils import split_dataset_by_labels, pathological_non_iid_split
 # TODO: remove this after new release of torchvision
 EMNIST.url = "https://www.itl.nist.gov/iaui/vip/cs_links/EMNIST/gzip.zip"
 
-N_CLASSES = 62
-RAW_DATA_PATH = "raw_data/"
-PATH = "noniid/"
-os.makedirs(PATH, exist_ok=True)
 
 def save_data(l, path_):
     with open(path_, 'wb') as f:
@@ -88,6 +84,12 @@ def parse_args():
 def main():
     args = parse_args()
 
+    N_CLASSES = 62
+    ROOT_PATH = "./Data/EMNIST/"
+    RAW_DATA_PATH = ROOT_PATH + "raw_data/"
+    PATH = ROOT_PATH + "iid/" if args.alpha == 1.0 else ROOT_PATH + "noniid/"
+    os.makedirs(PATH, exist_ok=True)
+
     transform = Compose(
         [ToTensor(),
          Normalize((0.1307,), (0.3081,))
@@ -144,8 +146,8 @@ def main():
         torch.save(client_eval, PATH+"client_eval_{}.pt".format(idx))
         idx += 1
     server_test = [dataset[i] for i in server_test_indices]
-    torch.save(server_test, "./server_test.pt".format(idx))
+    torch.save(server_test, ROOT_PATH+"server_test.pt".format(idx))
 
 if __name__ == "__main__":
     main()
-    print("Finished Splitting")
+    print("Finished Splition!")
