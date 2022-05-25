@@ -1,5 +1,9 @@
-from OfflinePack import offline_config as config
 import torch 
+from Common.Utils.configSel import load_dict
+import sys
+config_path = load_dict("config_path")["config_path"]
+sys.path.append(config_path)
+import offline_config as config
 
 def krumAttackPartial(w_local:torch.Tensor, w_global:torch.Tensor, threshold=1e-5, eps=1e-3, verbose=True):
     """Attacking Krum with partial knowledge, reference to Local Model Poisoning Attacks to Byzantine-Robust Federated Learning

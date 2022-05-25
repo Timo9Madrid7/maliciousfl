@@ -5,9 +5,6 @@ from Common.Handler.handler import Handler
 from Common.Utils.gaussian_moments_account import AutoDP_epsilon, acc_track_eps
 from Common.Utils.evaluate import evaluate_accuracy
 
-# Settings
-import OfflinePack.offline_config as config
-
 # Other Libs
 import torch
 from sklearn.metrics.pairwise import pairwise_distances
@@ -17,6 +14,13 @@ import numpy as np
 from copy import deepcopy
 import warnings 
 warnings.filterwarnings("ignore", message="invalid value encountered in double_scalars")
+
+# Settings
+from Common.Utils.configSel import load_dict
+import sys
+config_path = load_dict("config_path")["config_path"]
+sys.path.append(config_path)
+import offline_config as config
 
 class AvgGradientHandler(Handler):
     def __init__(self, config, model, device, test_iter):

@@ -1,3 +1,10 @@
+# Import Experimental Settings
+from Common.Utils.configSel import load_dict
+import sys
+config_path = load_dict("config_path")["config_path"]
+sys.path.append(config_path)
+import offline_config as config
+
 # Utils
 from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import resnet20 as ResNet
@@ -11,7 +18,6 @@ from Common.Server.server_sympcHandler import AvgGradientHandler
 from Crypto.s2pcSyMPC_v2 import S2PC
 
 # Offline Packages
-import OfflinePack.offline_config as config
 from OfflinePack.client import OfflineClient
 from OfflinePack.infer_client import InferClient
 
@@ -65,6 +71,14 @@ if __name__ == "__main__":
         'krum clients:', len(config.krum_clients), '| trimmedMean clients:', len(config.trimmedMean_clients), '| edge-case clients:', len(config.edge_case_clinets),
         '\n'
     )
+
+    ba_test_iter = []
+    if config.offline_poison == "backdoor" or config.backdoor_clients != []:
+        ba_test_iter = load_backdoor_test(dataset=config.DATASET)
+    if config.offline_poison == "flipping" or config.flipping_clients != []:
+        ba_test_iter = load_flipping_test(dataset=config.DATASET)
+    if config.offline_poison == "edge" or config.edge_case_clinets != [] or config.edge_case_test:
+        ba_test_iter, _ = load_edgecase_test(dataset=config.DATASET)
 
     client_dp_counter = 0
     grads_avg = None
@@ -167,11 +181,15 @@ if __name__ == "__main__":
                 print("next clipping boundary:%.2f"%aggregator.get_clipBound())
             else:
                 print("next clipping boundary:inf")
+        if ba_test_iter != []:
+            BA_history.append(evaluate_accuracy(ba_test_iter, global_model, device))
         if (epoch+1) % 25 == 0: # save global model and MA every 25 rounds
             torch.save(global_model.state_dict(), config.global_models_path)
-            with open("./Eva/offline/MA_history.txt", 'a') as f:
+            with open(config_path+"MA_history.txt", 'a') as f:
                 f.write(''.join(str(i)+' ' for i in MA_history)+'\n')
-            MA_history = []
+            with open(config_path+"BA_history.txt", 'a') as f:
+                f.write(''.join(str(i)+' ' for i in BA_history)+'\n')
+            MA_history, BA_history = [], []
         print()
     
     if config.dp_test:

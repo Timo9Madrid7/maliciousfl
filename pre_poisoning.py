@@ -1,7 +1,6 @@
 from Common.Utils.backdoorInjection import backdoor_mnist, flipping_mnist
 from Common.Utils.backdoorInjection import backdoor_cifar10, flipping_cifar10
 from Common.Utils.backdoorInjection import backdoor_emnist, flipping_emnist
-import OfflinePack.offline_config as config
 
 import torch
 import torchvision
@@ -9,6 +8,12 @@ import random
 import pickle
 import argparse
 from PIL import Image
+
+from Common.Utils.configSel import load_dict
+import sys
+config_path = load_dict("config_path")["config_path"]
+sys.path.append(config_path)
+import offline_config as config
 
 class PPoison():
     def __init__(self, n:int, frac:float, dataset:str, noniid:bool, type:str):

@@ -1,10 +1,14 @@
-from OfflinePack.offline_config import backdoor_pdr, backdoor_target, flipping_pdr
-from OfflinePack.offline_config import semantic_feature, num_inserted
-
 import numpy as np
 import torch
 import torchvision
 import random
+
+from Common.Utils.configSel import load_dict
+import sys
+config_path = load_dict("config_path")["config_path"]
+sys.path.append(config_path)
+from offline_config import backdoor_pdr, backdoor_target, flipping_pdr
+from offline_config import semantic_feature, num_inserted
 
 injection = torch.zeros((28,28))
 injection[1:6, 1:6] = 2
