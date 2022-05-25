@@ -2,12 +2,16 @@ from Common.Model.LeNet import LeNet
 from Common.Model.ResNet import resnet20 as ResNet
 from Common.Model.LeNet import EmnistCNN
 from Common.Model.Generator import Generator
-from Common.Utils.data_loader import load_data_mnist
-from OfflinePack import offline_config as config
 import torch
-import torchvision.models as models
 import os
 from torchsummary import summary
+
+from Common.Utils.configSel import configPath, save_dict
+import sys
+config_path = configPath().config
+save_dict({"config_path": config_path}, "config_path")
+sys.path.append(config_path)
+import offline_config as config
 
 if config.reconstruct_inference:
     G_model = Generator()
