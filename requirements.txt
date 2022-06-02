@@ -1,0 +1,9 @@
+sympy==1.9
+mpmath==1.2.1
+scipy==1.7.3
+matplotlib==3.4.3
+numpy==1.21.4
+options==1.4.10
+Pillow==9.1.1
+PyYAML==6.0
+scikit_learn==1.1.1
