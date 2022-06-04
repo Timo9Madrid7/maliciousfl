@@ -86,10 +86,10 @@ class AvgGradientHandler(Handler):
         """
 
         self.counter += 1
-        if self.counter == self.config.num_epochs and self.config.recording:
-            np.savetxt("./Eva/accuracy/acc_"+self.config.DATASET+'_'+self.config.surffix+".txt", self.accuracy_history)
-            if self.epsilon_history != []:
-                np.savetxt("./Eva/dpbudget/eps_"+self.config.DATASET+'_'+self.config.surffix+".txt", self.epsilon_history)
+        # if self.counter == self.config.num_epochs and self.config.recording:
+        #     np.savetxt("./Eva/accuracy/acc_"+self.config.DATASET+'_'+self.config.surffix+".txt", self.accuracy_history)
+        #     if self.epsilon_history != []:
+        #         np.savetxt("./Eva/dpbudget/eps_"+self.config.DATASET+'_'+self.config.surffix+".txt", self.epsilon_history)
 
         grad_in = np.array(data_in).reshape((self.clients_per_round, -1))
 
@@ -367,3 +367,11 @@ class AvgGradientHandler(Handler):
             layer_diff = grad_in[self._level_length[layer]:self._level_length[layer + 1]]
             param.data += torch.tensor(layer_diff, device=self.device).view(param.data.size())
             layer += 1
+            
+    def save_dpHist(self):
+        with open(config_path+"DP_history.txt", 'a') as f:
+            f.write(''.join(str(i)+' ' for i in self.epsilon_history)+'\n')
+
+    def save_serverEvalHist(self):
+        with open(config_path+"serverEval_history.txt", 'a') as f:
+            f.write(''.join(str(i)+' ' for i in self.accuracy_history)+'\n')
