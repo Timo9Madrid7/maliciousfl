@@ -169,3 +169,7 @@ class AvgGradientHandler(Handler):
             self.track_eps.update_mech(q, sigma, 1)
             cur_eps, cur_delta = self.track_eps.get_epsilon(), config.delta
         return cur_eps, cur_delta
+
+    def save_dpHist(self):
+        with open(config_path+"DP_history.txt", 'a') as f:
+            f.write(''.join(str(i)+' ' for i in self.epsilon_history)+'\n')

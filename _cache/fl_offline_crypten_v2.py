@@ -132,3 +132,4 @@ if __name__ == "__main__":
         print("flipping accuracy: %.3f"%evaluate_accuracy(flipping_test_iter, global_model, device))
 
     torch.save(global_model.state_dict(), config.global_models_path)
+    aggregator.save_dpHist()
