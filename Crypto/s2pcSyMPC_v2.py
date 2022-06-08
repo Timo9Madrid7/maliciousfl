@@ -89,14 +89,13 @@ class S2PC():
 
     def to_distance_matrix(self, grads_share):
         num_grads = len(grads_share)
-        grads_share_mean = sum(grads_share)*(1/num_grads) # SyMPC supports sum()
-        grads_share_cat = cat(grads_share).reshape(num_grads,-1) - grads_share_mean
+        grads_share_cat = cat(grads_share).reshape(num_grads,-1)
         
         cos_info = []
         for i in tqdm(range(num_grads)):
             zero_mask_i = torch.ones(num_grads)
             zero_mask_i[i] = zero_mask_i[i] * 0.
-            distance = 1. - self.share_dot((grads_share[i]-grads_share_mean), grads_share_cat.transpose(1,0))
+            distance = 1. - self.share_dot((grads_share[i]), grads_share_cat.transpose(1,0))
             distance = self.share_mul(distance, zero_mask_i)
             cos_info.append(distance)
         return cos_info

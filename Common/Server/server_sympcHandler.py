@@ -72,21 +72,6 @@ class AvgGradientHandler(Handler):
         self.accuracy_history = []
         self.epsilon_history = []
 
-    def cosinedist_s2pc(self, grads:list):
-        start = time.time()
-        grads_mean = 0
-        for i in range(len(grads)):
-            grads_mean += grads[i]
-        grads_mean = grads_mean / len(grads)
-        distance_matrix = [[0 for _ in range(len(grads))] for _ in range(len(grads))]
-        for i in range(len(grads)):
-            print(".", end="")
-            for j in range(i+1, len(grads)):
-                dist_ij = 1 - (grads[i]-grads_mean)@(grads[j]-grads_mean)
-                distance_matrix[i][j] = distance_matrix[j][i] = dist_ij
-        print("s2pc cosine distance computed %.1f"%(time.time()-start))
-        return distance_matrix
-
     def cosine_distance_filter(self, distance_matrix, cluster_sel=0):
         return self.hdbscan_filter(distance_matrix, cluster_sel=cluster_sel)
 

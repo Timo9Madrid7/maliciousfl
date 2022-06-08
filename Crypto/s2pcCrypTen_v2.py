@@ -26,12 +26,11 @@ class S2PC():
     @mpc.run_multiprocess(world_size=2)
     def cosinedist_s2pc(self, grads_secrete:list, correctness_check=False):
         grad_share = crypten.cryptensor(grads_secrete)
-        grad_share_mean = grad_share.mean(axis=0)
         distance_matrix = [[0 for _ in range(len(grads_secrete))] for _ in range(len(grads_secrete))]
         for i in range(len(grads_secrete)):
             for j in range(i+1, len(grads_secrete)):
                 distance_matrix[i][j] = distance_matrix[j][i] = torch.subtract(
-                  torch.tensor([1.]), ((grad_share[i]-grad_share_mean).dot(grad_share[j]-grad_share_mean)).get_plain_text()).item()
+                  torch.tensor([1.]), ((grad_share[i]).dot(grad_share[j])).get_plain_text()).item()
         
         if correctness_check and comm.get().get_rank():
             distance_matrix_compare = self.cosinedist_correctness_check(grads_secrete)
@@ -84,12 +83,7 @@ class S2PC():
         @mpc.run_multiprocess(world_size=2)
         def cosineFilter(grads_list_, grads_ly_list_, verbose):
             grad_share = crypten.cryptensor(grads_list_)
-            grad_share_mean = grad_share.mean(axis=0)
-            # distance_matrix = crypten.cryptensor([[0. for _ in range(len(grads_list_))] for _ in range(len(grads_list_))])
-            # for i in range(len(grads_list_)):
-            #     for j in range(i+1, len(grads_list_)):
-            #         distance_matrix[i][j] = distance_matrix[j][i] = 1. - ((grad_share[i]-grad_share_mean).dot(grad_share[j]-grad_share_mean))
-            distance_matrix = 1. - (grad_share-grad_share_mean).matmul((grad_share-grad_share_mean).transpose(1,0))
+            distance_matrix = 1. - (grad_share).matmul(grad_share.transpose(1,0))
             for i in range(len(distance_matrix)):
                 distance_matrix[i,i] = 0
             labels = self.cluster_base.fit(distance_matrix).labels_
@@ -99,12 +93,7 @@ class S2PC():
                 grads_ly_filtered.append(grads_ly_list_[_id])
             
             grad_share = crypten.cryptensor(grads_ly_filtered)
-            grad_share_mean = grad_share.mean(axis=0)
-            # distance_matrix = crypten.cryptensor([[0. for _ in range(len(grads_ly_filtered))] for _ in range(len(grads_ly_filtered))])
-            # for i in range(len(grads_ly_filtered)):
-            #     for j in range(i+1, len(grads_ly_filtered)):
-            #         distance_matrix[i][j] = distance_matrix[j][i] = 1. - ((grad_share[i]-grad_share_mean).dot(grad_share[j]-grad_share_mean))
-            distance_matrix = 1. - (grad_share-grad_share_mean).matmul((grad_share-grad_share_mean).transpose(1,0))
+            distance_matrix = 1. - (grad_share).matmul(grad_share.transpose(1,0))
             for i in range(len(distance_matrix)):
                 distance_matrix[i,i] = 0
             labels = self.cluster_lastLayer.fit(distance_matrix).labels_
@@ -134,11 +123,10 @@ class S2PC():
 
     def cosinedist_correctness_check(self, grads_secrete:list):
         grads_secrete = np.array(grads_secrete)
-        grads_secrete_mean = grads_secrete.mean(axis=0)
         distance_matrix = [[0 for _ in range(len(grads_secrete))] for _ in range(len(grads_secrete))]
         for i in range(len(grads_secrete)):
             for j in range(i+1, len(grads_secrete)):
-                 distance_matrix[i][j] = distance_matrix[j][i] = 1 - ((grads_secrete[i]-grads_secrete_mean).dot(grads_secrete[j]-grads_secrete_mean))
+                 distance_matrix[i][j] = distance_matrix[j][i] = 1. - ((grads_secrete[i]).dot(grads_secrete[j]))
         return distance_matrix
 
     def auto_dbscan(self, cryptensor):
@@ -164,11 +152,10 @@ class S2PC():
 
     def filters_parameters_tuning(self, grads_list_:list, grads_ly_list_:list, verbose=True):
         grad_share = torch.tensor(grads_list_)
-        grad_share_mean = grad_share.mean(axis=0)
         distance_matrix = torch.tensor([[0. for _ in range(len(grads_list_))] for _ in range(len(grads_list_))])
         for i in range(len(grads_list_)):
             for j in range(i+1, len(grads_list_)):
-                distance_matrix[i][j] = distance_matrix[j][i] = 1. - ((grad_share[i]-grad_share_mean).dot(grad_share[j]-grad_share_mean))
+                distance_matrix[i][j] = distance_matrix[j][i] = 1. - ((grad_share[i]).dot(grad_share[j]))
 
         labels = DBSCAN(0.1, 3).fit(distance_matrix).labels_
         filter1_id = self.get_ids(labels)
@@ -177,11 +164,10 @@ class S2PC():
             grads_ly_filtered.append(grads_ly_list_[_id])
         
         grad_share = torch.tensor(grads_ly_filtered)
-        grad_share_mean = grad_share.mean(axis=0)
         distance_matrix = torch.tensor([[0. for _ in range(len(grads_ly_filtered))] for _ in range(len(grads_ly_filtered))])
         for i in range(len(grads_ly_filtered)):
             for j in range(i+1, len(grads_ly_filtered)):
-                distance_matrix[i][j] = distance_matrix[j][i] = 1. - ((grad_share[i]-grad_share_mean).dot(grad_share[j]-grad_share_mean))
+                distance_matrix[i][j] = distance_matrix[j][i] = 1. - ((grad_share[i]).dot(grad_share[j]))
 
         labels = DBSCAN(0.01, 5).fit(distance_matrix).labels_
         filter2_id = self.get_ids(labels)
