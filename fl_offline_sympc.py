@@ -156,7 +156,7 @@ if __name__ == "__main__":
 
         for grad in temp_grads_list_:
             grads_norm = np.linalg.norm(grad)
-            norm_share = s2pc.secrete_share(secrete=grads_norm)
+            norm_share = s2pc.secrete_share(secrete=[grads_norm])
             norms_list_.append(norm_share)
             grads_unit = list(map(lambda x:x/grads_norm, grad))
             grads_share = s2pc.secrete_share(secrete=grads_unit)

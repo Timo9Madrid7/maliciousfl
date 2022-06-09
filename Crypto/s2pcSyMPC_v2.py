@@ -88,16 +88,25 @@ class S2PC():
             return ~self.secrete_reconstruct(result, decode=False)
 
     def to_distance_matrix(self, grads_share):
-        num_grads = len(grads_share)
-        grads_share_cat = cat(grads_share).reshape(num_grads,-1)
-        
         cos_info = []
-        for i in tqdm(range(num_grads)):
-            zero_mask_i = torch.ones(num_grads)
-            zero_mask_i[i] = zero_mask_i[i] * 0.
-            distance = 1. - self.share_dot((grads_share[i]), grads_share_cat.transpose(1,0))
-            distance = self.share_mul(distance, zero_mask_i)
-            cos_info.append(distance)
+        
+        if self.protocol == 'fss':
+            num_grads = len(grads_share)
+            grads_share_cat = cat(grads_share).reshape(num_grads,-1)
+            for i in tqdm(range(num_grads)):
+                zero_mask_i = torch.ones(num_grads)
+                zero_mask_i[i] = zero_mask_i[i] * 0.
+                distance = 1. - self.share_dot((grads_share[i]), grads_share_cat.transpose(1,0))
+                distance = self.share_mul(distance, zero_mask_i)
+                cos_info.append(distance)
+        elif self.protocol == 'falcon':
+            distance_matrix = [[self.secrete_share([0.]) for _ in range(len(grads_share))] for _ in range(len(grads_share))]
+            cos_info = []
+            for i in tqdm(range(len(grads_share))):
+                for j in range(i+1, len(grads_share)):
+                    distance_matrix[i][j] = distance_matrix[j][i] = 1. - self.share_dot(grads_share[i], grads_share[j]).view(-1)
+                cos_info.append(cat(distance_matrix[i]))
+                
         return cos_info
 
     def cosineFilter_s2pc(self, grads_list_:list, grads_ly_list_:list, verbose=True):
@@ -127,16 +136,22 @@ class S2PC():
         return benign_id
         
     def aggregation_s2pc(self, grads_list_:list, norms_list_:list, clip_bound:float or None, benign_id:list):
-        grads_share = grads_list_
-        norms_share = norms_list_
+        grads_share = []
+        norms_share = []
+        for _id in benign_id:
+            grads_share.append(grads_list_[_id])
+            norms_share.append(norms_list_[_id])
+        if clip_bound != None:      
+            clip_pos = self.public_compare(cat(norms_share), clip_bound)
+
         grads_sum = 0
         bs_sum = 0
-        for _id in benign_id:
-            if clip_bound == None or self.secrete_reconstruct(norms_share[_id]<=clip_bound).item():
+        for i in range(len(grads_share)):
+            if clip_bound == None or clip_pos[i].item():
                 bs_sum += 1
-                grads_sum += self.share_mul(grads_share[_id], norms_share[_id])
+                grads_sum += self.share_mul(grads_share[i], norms_share[i])
             else:
-                grads_sum += self.share_mul(grads_share[_id], torch.tensor(clip_bound))
+                grads_sum += self.share_mul(grads_share[i], torch.tensor(clip_bound))
         return self.secrete_reconstruct(grads_sum), bs_sum
 
     def get_ids(self, label):
