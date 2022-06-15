@@ -194,7 +194,7 @@ if __name__ == "__main__":
         print("edge cases BA(true->fake): %.3f | MA(true->true): %.3f"%(evaluate_accuracy(edge_case_test_iter_true_fake, global_model, device), evaluate_accuracy(edge_case_test_iter_true, global_model, device)))
 
     torch.save(global_model.state_dict(), config.global_models_path)
-    
+    aggregator.save_dpHist()
 
 
 
